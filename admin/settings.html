@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+  <div id="content" class="p-4 md:p-8"></div>
+
+  <script type="module">
+    import { initAdminPage } from '../assets/js/admin.js';
+    import { esc, toast } from '../assets/js/utils.js';
+    import { saveSettings } from '../assets/js/database.js';
+
+    const { user, settings } = await initAdminPage('settings');
+    const content = document.getElementById('content');
+
+    renderSettings();
+
+    function renderSettings() {
+      const s = settings;
+      content.innerHTML = `
+        <div class="mb-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 text-sm text-blue-800 dark:text-blue-200">
+          Changes saved here reflect across the entire portal instantly.
+        </div>
+
+        <form id="settings-form" class="space-y-6">
+
+          <!-- Company -->
+          <div class="card p-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4">Company</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${field('company.name', 'Company Name', s.company?.name)}
+              ${field('company.tagline', 'Tagline', s.company?.tagline)}
+              ${field('company.logoUrl', 'Logo URL', s.company?.logoUrl)}
+              ${field('company.faviconUrl', 'Favicon URL', s.company?.faviconUrl)}
+              ${field('company.email', 'Email', s.company?.email)}
+              ${field('company.phone', 'Phone', s.company?.phone)}
+              ${field('company.address', 'Address', s.company?.address)}
+              ${field('company.website', 'Website', s.company?.website)}
+              ${field('company.facebook', 'Facebook', s.company?.facebook)}
+              ${field('company.twitter', 'Twitter / X', s.company?.twitter)}
+              ${field('company.linkedin', 'LinkedIn', s.company?.linkedin)}
+              ${field('company.instagram', 'Instagram', s.company?.instagram)}
+            </div>
+          </div>
+
+          <!-- Homepage -->
+          <div class="card p-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4">Homepage</h3>
+            <div class="grid grid-cols-1 gap-4">
+              ${field('home.heroTitle', 'Hero Title', s.home?.heroTitle)}
+              ${textarea('home.heroSubtitle', 'Hero Subtitle', s.home?.heroSubtitle)}
+              ${field('home.ctaText', 'CTA Button Text', s.home?.ctaText)}
+            </div>
+          </div>
+
+          <!-- About -->
+          <div class="card p-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4">About</h3>
+            <div class="grid grid-cols-1 gap-4">
+              ${textarea('about.mission', 'Mission', s.about?.mission)}
+              ${textarea('about.vision', 'Vision', s.about?.vision)}
+              ${textarea('about.history', 'History', s.about?.history)}
+              ${textarea('about.methodology', 'Methodology', s.about?.methodology)}
+            </div>
+          </div>
+
+          <!-- Payment -->
+          <div class="card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <span>⚡ Razorpay Instant Payment Gateway</span>
+                  <span class="badge badge-blue text-[10px]">100% Automated</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Automated student fee collection with instant certificate unlock.</p>
+              </div>
+              <a href="razorpay.html" class="btn btn-sm btn-primary flex items-center gap-1.5 shadow-sm text-xs">
+                <span>🔐 Full Razorpay Keys & Sync</span>
+                <span>&rarr;</span>
+              </a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${checkbox('payment.razorpayEnabled', 'Razorpay Gateway Enabled', s.payment?.razorpayEnabled ?? true)}
+              ${checkbox('payment.stopPayment', 'Stop All Payments (Maintenance)', s.payment?.stopPayment)}
+              ${numberField('payment.amount', 'Default Fee Amount (₹)', s.payment?.amount || 199)}
+              ${field('payment.razorpayKeyId', 'Razorpay Key ID (rzp_live_… or rzp_test_…)', s.payment?.razorpayKeyId)}
+            </div>
+            <div class="mt-4 p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-indigo-900 dark:text-indigo-200">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🛡️</span>
+                <div>
+                  <strong>Official Razorpay Only:</strong>
+                  <span>Students scan Razorpay dynamic UPI QR (GPay / PhonePe / Paytm) or pay with cards. Instant cryptographic verification automatically unlocks certificate.</span>
+                </div>
+              </div>
+              <a href="../razorpay.html" target="_blank" class="font-bold underline hover:no-underline whitespace-nowrap text-indigo-600 dark:text-indigo-400">Preview Checkout &rarr;</a>
+            </div>
+          </div>
+
+          <!-- Certificate -->
+          <div class="card p-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4">Certificate</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${field('certificate.prefix', 'ID Prefix', s.certificate?.prefix)}
+              ${field('certificate.authorizedName', 'Authorized Name', s.certificate?.authorizedName)}
+              ${field('certificate.designation', 'Designation', s.certificate?.designation)}
+              ${field('certificate.signatureUrl', 'Signature URL', s.certificate?.signatureUrl)}
+              ${field('certificate.logoUrl', 'Certificate Logo URL', s.certificate?.logoUrl)}
+              ${field('certificate.sealUrl', 'Bottom Seal PNG URL', s.certificate?.sealUrl)}
+              ${field('certificate.msmeUrl', 'MSME Logo URL', s.certificate?.msmeUrl)}
+            </div>
+          </div>
+
+          <!-- EmailJS -->
+          <div class="card p-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4">EmailJS Integration</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              ${checkbox('emailjs.enabled', 'Enable EmailJS', s.emailjs?.enabled)}
+              ${field('emailjs.serviceId', 'Service ID', s.emailjs?.serviceId)}
+              ${field('emailjs.templateId', 'Template ID', s.emailjs?.templateId)}
+              ${field('emailjs.publicKey', 'Public Key', s.emailjs?.publicKey)}
+            </div>
+          </div>
+
+          <!-- Policies -->
+          <div class="card p-5">
+            <h3 class="text-base font-bold text-slate-800 dark:text-white mb-4">Policies (Raw HTML)</h3>
+            <div class="space-y-4">
+              ${largeTextarea('policies.privacy', 'Privacy Policy', s.policies?.privacy)}
+              ${largeTextarea('policies.refund', 'Refund Policy', s.policies?.refund)}
+              ${largeTextarea('policies.terms', 'Terms & Conditions', s.policies?.terms)}
+            </div>
+          </div>
+
+          <!-- Save -->
+          <div class="flex justify-end">
+            <button id="save-btn" type="submit" class="btn btn-primary px-8">Save Settings</button>
+          </div>
+        </form>`;
+
+      // Wire save
+      document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          const patch = buildPatch();
+          await saveSettings(patch);
+          toast('Settings saved successfully', 'success');
+        } catch (err) {
+          toast(err.message || 'Failed to save settings', 'error');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Save Settings';
+        }
+      });
+    }
+
+    // Build nested object from data-path attributes
+    function buildPatch() {
+      const obj = {};
+      document.querySelectorAll('[data-path]').forEach(el => {
+        const path = el.dataset.path;
+        let value;
+        if (el.type === 'checkbox') value = el.checked;
+        else if (el.dataset.numtype === 'number') value = Number(el.value) || 0;
+        else value = el.value;
+
+        const [group, field] = path.split('.');
+        if (!obj[group]) obj[group] = {};
+        obj[group][field] = value;
+      });
+      return obj;
+    }
+
+    // Field helpers
+    function field(path, label, value) {
+      return `<div><label class="label" for="${path}">${esc(label)}</label><input id="${path}" data-path="${path}" class="input" value="${esc(value || '')}"></div>`;
+    }
+    function numberField(path, label, value) {
+      return `<div><label class="label" for="${path}">${esc(label)}</label><input id="${path}" data-path="${path}" data-numtype="number" type="number" class="input" value="${esc(String(value ?? ''))}"></div>`;
+    }
+    function checkbox(path, label, checked) {
+      return `<div class="flex items-center gap-2 pt-5"><input id="${path}" data-path="${path}" type="checkbox" class="rounded border-slate-300" ${checked ? 'checked' : ''}><label for="${path}" class="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer">${esc(label)}</label></div>`;
+    }
+    function textarea(path, label, value) {
+      return `<div><label class="label" for="${path}">${esc(label)}</label><textarea id="${path}" data-path="${path}" class="input" rows="3">${esc(value || '')}</textarea></div>`;
+    }
+    function largeTextarea(path, label, value) {
+      return `<div><label class="label" for="${path}">${esc(label)}</label><textarea id="${path}" data-path="${path}" class="input font-mono text-xs" rows="8">${esc(value || '')}</textarea></div>`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Submissions · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, badge, exportCSV, toast, fmtTs, debounce } from '../assets/js/utils.js';
+import { listSubmissions, listStudents, listDomains, setSubmissionStatus } from '../assets/js/database.js';
+import { unlockIfEligible } from '../assets/js/certificate.js';
+
+const content = document.getElementById('content');
+let submissions = [], students = [], domains = [], settings;
+let fSearch = '', fDomain = '', fWeek = '', fStatus = '';
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    [submissions, students, domains] = await Promise.all([
+      listSubmissions(),
+      listStudents({ includeInactive: true }),
+      listDomains({ includeInactive: true })
+    ]);
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function studentName(id) {
+  const s = students.find(s => s.studentId === id);
+  return s ? s.name : id;
+}
+
+function filtered() {
+  let list = submissions;
+  if (fSearch) {
+    const q = fSearch.toLowerCase();
+    list = list.filter(s => {
+      const name = studentName(s.studentId).toLowerCase();
+      return name.includes(q) || s.studentId.toLowerCase().includes(q);
+    });
+  }
+  if (fDomain) list = list.filter(s => s.domainId === fDomain);
+  if (fWeek) list = list.filter(s => Number(s.week) === Number(fWeek));
+  if (fStatus) list = list.filter(s => s.status === fStatus);
+  return list;
+}
+
+function truncateUrl(url, max = 30) {
+  if (!url) return '—';
+  return url.length > max ? url.slice(0, max) + '...' : url;
+}
+
+function render() {
+  const list = filtered();
+  const rows = list.map(s => {
+    const name = studentName(s.studentId);
+    const ghLink = s.githubUrl ? `<a href="${esc(s.githubUrl)}" target="_blank" rel="noopener" class="text-indigo-600 dark:text-indigo-400 hover:underline" title="${esc(s.githubUrl)}">${esc(truncateUrl(s.githubUrl))}</a>` : '—';
+    const liveLink = s.liveUrl ? `<a href="${esc(s.liveUrl)}" target="_blank" rel="noopener" class="text-indigo-600 dark:text-indigo-400 hover:underline">Live</a>` : '—';
+    const isSubmitted = s.status === 'SUBMITTED';
+    const isCompleted = s.status === 'COMPLETED';
+    let actionHtml = '';
+    if (isSubmitted) actionHtml = `<button class="btn btn-success btn-sm" data-complete="${esc(s.id)}">Mark Completed</button>`;
+    else if (isCompleted) actionHtml = `<button class="btn btn-outline btn-sm" data-revert="${esc(s.id)}">Revert to Submitted</button>`;
+
+    return `<tr>
+      <td><span class="font-medium">${esc(name)}</span><br><span class="text-xs text-slate-400">${esc(s.studentId)}</span></td>
+      <td>${esc(s.domainName || s.domainId || '—')}</td>
+      <td>${s.week || '—'}</td>
+      <td>${esc(s.taskTitle || '—')}</td>
+      <td>${ghLink}</td>
+      <td>${liveLink}</td>
+      <td>${fmtTs(s.submittedAt)}</td>
+      <td>${badge(s.status)}</td>
+      <td class="whitespace-nowrap">${actionHtml}</td>
+    </tr>`;
+  }).join('');
+
+  const domOpts = [`<option value="">All Domains</option>`, ...domains.map(d =>
+    `<option value="${esc(d.id)}" ${fDomain === d.id ? 'selected' : ''}>${esc(d.name)}</option>`
+  )].join('');
+  const weekOpts = ['<option value="">All Weeks</option>', ...[1,2,3,4].map(w =>
+    `<option value="${w}" ${fWeek == w ? 'selected' : ''}>Week ${w}</option>`
+  )].join('');
+  const statusOpts = ['<option value="">All Statuses</option>', 'SUBMITTED', 'COMPLETED'].map(st =>
+    typeof st === 'string' ? `<option value="${st}" ${fStatus === st ? 'selected' : ''}>${st}</option>` : st
+  ).join('');
+
+  content.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">Submissions</h2>
+      <button id="export-btn" class="btn btn-outline">Export CSV</button>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input class="input w-auto min-w-[200px]" id="f-search" placeholder="Search student name or ID..." value="${esc(fSearch)}">
+      <select id="f-domain" class="input w-auto">${domOpts}</select>
+      <select id="f-week" class="input w-auto">${weekOpts}</select>
+      <select id="f-status" class="input w-auto">${statusOpts}</select>
+    </div>
+    <div class="card overflow-x-auto">
+      ${list.length ? `<table class="table">
+        <thead><tr><th>Student</th><th>Domain</th><th>Week</th><th>Task</th><th>GitHub</th><th>Live</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No submissions found.')}
+    </div>`;
+
+  const searchInput = document.getElementById('f-search');
+  searchInput.oninput = debounce(e => { fSearch = e.target.value; render(); }, 250);
+  document.getElementById('f-domain').onchange = e => { fDomain = e.target.value; render(); };
+  document.getElementById('f-week').onchange = e => { fWeek = e.target.value; render(); };
+  document.getElementById('f-status').onchange = e => { fStatus = e.target.value; render(); };
+
+  document.getElementById('export-btn').onclick = () => {
+    if (!list.length) return toast('No data to export', 'error');
+    exportCSV('submissions.csv', list.map(s => ({
+      StudentID: s.studentId, StudentName: studentName(s.studentId),
+      Domain: s.domainName || s.domainId, Week: s.week, Task: s.taskTitle,
+      GitHubURL: s.githubUrl || '', LiveURL: s.liveUrl || '',
+      SubmittedAt: fmtTs(s.submittedAt), Status: s.status
+    })));
+  };
+
+  content.querySelectorAll('[data-complete]').forEach(b => b.onclick = async () => {
+    const sub = submissions.find(s => s.id === b.dataset.complete);
+    b.disabled = true;
+    try {
+      await setSubmissionStatus(sub.id, 'COMPLETED');
+      toast('Marked as completed', 'success');
+      // Attempt certificate unlock for this student
+      const studentDoc = students.find(s => s.studentId === sub.studentId);
+      if (studentDoc) {
+        try {
+          const certId = await unlockIfEligible(studentDoc, settings);
+          if (certId) toast(`Certificate unlocked: ${certId}`, 'success');
+        } catch (ce) { console.warn('Certificate unlock check failed', ce); }
+      }
+      await load();
+    } catch (e) { toast(e.message, 'error'); b.disabled = false; }
+  });
+
+  content.querySelectorAll('[data-revert]').forEach(b => b.onclick = async () => {
+    const sub = submissions.find(s => s.id === b.dataset.revert);
+    b.disabled = true;
+    try {
+      await setSubmissionStatus(sub.id, 'SUBMITTED');
+      toast('Reverted to submitted', 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); b.disabled = false; }
+  });
+}
+
+const { user, settings: _settings } = await initAdminPage('submissions');
+settings = _settings;
+await load();
+</script>
+</body>
+</html>

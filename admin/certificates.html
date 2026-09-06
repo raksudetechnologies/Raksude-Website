@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Certificates · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, confirmDialog, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, badge, exportCSV, toast, fmtDate, fmtTs, debounce, printElement } from '../assets/js/utils.js';
+import { listCertificates, listStudents, createCertificate } from '../assets/js/database.js';
+import { certificateHtml } from '../assets/js/certificate.js';
+
+const content = document.getElementById('content');
+let certs = [], students = [], settings;
+let fSearch = '';
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    [certs, students] = await Promise.all([
+      listCertificates(),
+      listStudents({ includeInactive: true })
+    ]);
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function filtered() {
+  if (!fSearch) return certs;
+  const q = fSearch.toLowerCase();
+  return certs.filter(c =>
+    (c.certificateId || '').toLowerCase().includes(q) ||
+    (c.name || '').toLowerCase().includes(q) ||
+    (c.studentId || '').toLowerCase().includes(q)
+  );
+}
+
+function render() {
+  const list = filtered();
+  const rows = list.map(c => `<tr>
+    <td class="font-mono text-xs">${esc(c.certificateId)}</td>
+    <td class="font-medium">${esc(c.name)}</td>
+    <td class="text-xs text-slate-400">${esc(c.studentId)}</td>
+    <td>${esc(c.domainName || '—')}</td>
+    <td>${fmtDate(c.startDate)}</td>
+    <td>${fmtDate(c.endDate)}</td>
+    <td>${fmtDate(c.issueDate)}</td>
+    <td>${c.manual ? '<span class="badge badge-amber">Manual</span>' : '<span class="badge badge-green">Auto</span>'}</td>
+    <td><button class="btn btn-outline btn-sm" data-view="${esc(c.certificateId)}">View</button></td>
+  </tr>`).join('');
+
+  content.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">Certificates</h2>
+      <div class="flex gap-2">
+        <button id="manual-btn" class="btn btn-primary">Generate Manually</button>
+        <button id="export-btn" class="btn btn-outline">Export CSV</button>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input class="input w-auto min-w-[250px]" id="f-search" placeholder="Search certificate ID or student name..." value="${esc(fSearch)}">
+    </div>
+    <div class="card overflow-x-auto">
+      ${list.length ? `<table class="table">
+        <thead><tr><th>Certificate ID</th><th>Student</th><th>Student ID</th><th>Domain</th><th>Start</th><th>End</th><th>Issued</th><th>Type</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No certificates found.')}
+    </div>`;
+
+  const searchInput = document.getElementById('f-search');
+  searchInput.oninput = debounce(e => { fSearch = e.target.value; render(); }, 250);
+
+  document.getElementById('export-btn').onclick = () => {
+    if (!list.length) return toast('No data to export', 'error');
+    exportCSV('certificates.csv', list.map(c => ({
+      CertificateID: c.certificateId, StudentName: c.name, StudentID: c.studentId,
+      Domain: c.domainName, StartDate: c.startDate, EndDate: c.endDate,
+      IssueDate: c.issueDate, Manual: c.manual ? 'Yes' : 'No'
+    })));
+  };
+
+  document.getElementById('manual-btn').onclick = () => openManualModal();
+
+  content.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+    const cert = certs.find(c => c.certificateId === b.dataset.view);
+    if (cert) openViewModal(cert);
+  });
+}
+
+function openViewModal(cert) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal modal-wide">
+      <div class="modal-head"><h3>Certificate Preview</h3><button class="icon-btn" id="m-close">✕</button></div>
+      <div class="modal-body flex justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-4 overflow-x-auto">
+        ${certificateHtml(cert, settings)}
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline btn-sm" id="m-cancel">Close</button>
+        <button class="btn btn-primary btn-sm" id="m-print">Print</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  const close = () => wrap.remove();
+  wrap.querySelector('#m-close').onclick = close;
+  wrap.querySelector('#m-cancel').onclick = close;
+  wrap.querySelector('.modal-backdrop').onclick = close;
+  wrap.querySelector('#m-print').onclick = () => {
+    const el = document.getElementById('certificate-paper');
+    if (el) printElement(el);
+  };
+}
+
+function openManualModal() {
+  if (!students.length) return toast('No students available', 'error');
+  const opts = students.map(s =>
+    `<option value="${esc(s.studentId)}">${esc(s.name)} — ${esc(s.studentId)}</option>`
+  ).join('');
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal">
+      <div class="modal-head"><h3>Generate Certificate Manually</h3><button class="icon-btn" id="m-close">✕</button></div>
+      <div class="modal-body space-y-4">
+        <p class="text-sm text-slate-500 dark:text-slate-400">This bypasses eligibility checks and immediately generates a certificate for the selected student.</p>
+        <div><label class="label">Select Student</label><select class="input" id="f-student">${opts}</select></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline btn-sm" id="m-cancel">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="m-gen">Generate</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  const close = () => wrap.remove();
+  wrap.querySelector('#m-close').onclick = close;
+  wrap.querySelector('#m-cancel').onclick = close;
+  wrap.querySelector('.modal-backdrop').onclick = close;
+
+  wrap.querySelector('#m-gen').onclick = async () => {
+    const sid = wrap.querySelector('#f-student').value;
+    const student = students.find(s => s.studentId === sid);
+    if (!student) return toast('Student not found', 'error');
+    const ok = await confirmDialog(`Generate certificate for ${student.name} (${student.studentId})? This bypasses eligibility checks.`, { danger: false });
+    if (!ok) return;
+    const genBtn = wrap.querySelector('#m-gen');
+    genBtn.disabled = true;
+    try {
+      const cert = await createCertificate(student, settings, { manual: true });
+      toast(`Certificate ${cert.certificateId} generated`, 'success');
+      close();
+      await load();
+    } catch (e) { toast(e.message, 'error'); genBtn.disabled = false; }
+  };
+}
+
+const { user, settings: _settings } = await initAdminPage('certificates');
+settings = _settings;
+await load();
+</script>
+</body>
+</html>

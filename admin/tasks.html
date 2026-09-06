@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tasks · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, confirmDialog, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, badge, exportCSV, toast, fmtDate } from '../assets/js/utils.js';
+import { listTasks, saveTask, deleteTask, listDomains } from '../assets/js/database.js';
+
+const content = document.getElementById('content');
+let tasks = [], domains = [];
+let filterDomain = '', filterWeek = '';
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    [tasks, domains] = await Promise.all([
+      listTasks({ includeInactive: true }),
+      listDomains({ includeInactive: true })
+    ]);
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function filtered() {
+  let t = tasks;
+  if (filterDomain) t = t.filter(x => x.domainId === filterDomain);
+  if (filterWeek) t = t.filter(x => Number(x.week) === Number(filterWeek));
+  return t;
+}
+
+function domainName(id) {
+  const d = domains.find(d => d.id === id);
+  return d ? d.name : (id || '—');
+}
+
+function render() {
+  const list = filtered();
+  const rows = list.map(t => `<tr>
+    <td>${t.week || '—'}</td>
+    <td class="font-medium">${esc(t.title)}</td>
+    <td>${esc(t.domainName || domainName(t.domainId))}</td>
+    <td>${t.deadline ? fmtDate(t.deadline) : '—'}</td>
+    <td>${(t.links || []).length}</td>
+    <td>${badge(t.active !== false ? 'ACTIVE' : 'INACTIVE')}</td>
+    <td class="space-x-1 whitespace-nowrap">
+      <button class="btn btn-outline btn-sm" data-edit="${esc(t.id)}">Edit</button>
+      <button class="btn btn-outline btn-sm" data-toggle="${esc(t.id)}">${t.active !== false ? 'Deactivate' : 'Activate'}</button>
+      <button class="btn btn-danger btn-sm" data-del="${esc(t.id)}">Delete</button>
+    </td>
+  </tr>`).join('');
+
+  const domOpts = [`<option value="">All Domains</option>`, ...domains.map(d =>
+    `<option value="${esc(d.id)}" ${filterDomain === d.id ? 'selected' : ''}>${esc(d.name)}</option>`
+  )].join('');
+  const weekOpts = ['<option value="">All Weeks</option>', ...[1,2,3,4].map(w =>
+    `<option value="${w}" ${filterWeek == w ? 'selected' : ''}>Week ${w}</option>`
+  )].join('');
+
+  content.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">Tasks</h2>
+      <div class="flex gap-2">
+        <button id="add-btn" class="btn btn-primary">+ Add Task</button>
+        <button id="export-btn" class="btn btn-outline">Export CSV</button>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <select id="f-domain" class="input w-auto">${domOpts}</select>
+      <select id="f-week" class="input w-auto">${weekOpts}</select>
+    </div>
+    <div class="card overflow-x-auto">
+      ${list.length ? `<table class="table">
+        <thead><tr><th>Week</th><th>Title</th><th>Domain</th><th>Deadline</th><th>Links</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No tasks found. Click "Add Task" to create one.')}
+    </div>`;
+
+  document.getElementById('f-domain').onchange = e => { filterDomain = e.target.value; render(); };
+  document.getElementById('f-week').onchange = e => { filterWeek = e.target.value; render(); };
+  document.getElementById('add-btn').onclick = () => openModal();
+  document.getElementById('export-btn').onclick = () => {
+    if (!list.length) return toast('No data to export', 'error');
+    exportCSV('tasks.csv', list.map(t => ({
+      ID: t.id, Week: t.week, Title: t.title, Domain: t.domainName || domainName(t.domainId),
+      Deadline: t.deadline || '', Links: (t.links||[]).join('; '), Active: t.active !== false
+    })));
+  };
+
+  content.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openModal(tasks.find(t => t.id === b.dataset.edit)));
+  content.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    const t = tasks.find(t => t.id === b.dataset.toggle);
+    try {
+      await saveTask({ active: t.active === false }, t.id);
+      toast(`Task ${t.active === false ? 'activated' : 'deactivated'}`, 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); }
+  });
+  content.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const t = tasks.find(t => t.id === b.dataset.del);
+    const ok = await confirmDialog(`Delete task "${t.title}"?`, { danger: true });
+    if (!ok) return;
+    try {
+      await deleteTask(t.id);
+      toast('Task deleted', 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); }
+  });
+}
+
+function openModal(task = null) {
+  const isEdit = !!task;
+  const t = task || {};
+  const domOpts = [`<option value="">-- Select Domain --</option>`, ...domains.map(d =>
+    `<option value="${esc(d.id)}" data-weeks="${d.weeks || 4}" ${t.domainId === d.id ? 'selected' : ''}>${esc(d.name)} (${d.weeks || 4} week${(d.weeks || 4) > 1 ? 's' : ''})</option>`
+  )].join('');
+
+  // Build week options for the initially selected domain
+  const initDomain = domains.find(d => d.id === t.domainId);
+  const initWeeks = initDomain ? (Number(initDomain.weeks) || 4) : 4;
+  function buildWeekOpts(maxWeeks, selected) {
+    return Array.from({ length: maxWeeks }, (_, i) => i + 1).map(w =>
+      `<option value="${w}" ${(selected || 1) == w ? 'selected' : ''}>Week ${w}</option>`
+    ).join('');
+  }
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal">
+      <div class="modal-head"><h3>${isEdit ? 'Edit' : 'Add'} Task</h3><button class="icon-btn" id="m-close">✕</button></div>
+      <div class="modal-body space-y-4">
+        <div><label class="label">Domain</label><select class="input" id="f-domain">${domOpts}</select></div>
+        <div><label class="label">Week <span class="text-xs text-slate-400 font-normal" id="week-hint">(${initWeeks} weeks available for this domain)</span></label><select class="input" id="f-week">${buildWeekOpts(initWeeks, t.week)}</select></div>
+        <div><label class="label">Title</label><input class="input" id="f-title" value="${esc(t.title || '')}"></div>
+        <div><label class="label">Description</label><textarea class="input" id="f-desc" rows="3">${esc(t.description || '')}</textarea></div>
+        <div><label class="label">Instructions</label><textarea class="input" id="f-inst" rows="3">${esc(t.instructions || '')}</textarea></div>
+        <div><label class="label">Deadline (optional)</label><input class="input" id="f-deadline" type="date" value="${t.deadline || ''}"></div>
+        <div><label class="label">Links (one URL per line)</label><textarea class="input" id="f-links" rows="3">${(t.links || []).join('\n')}</textarea></div>
+        <div><label class="label">Order</label><input class="input" id="f-order" type="number" min="0" value="${t.order ?? 0}"></div>
+        <div class="flex items-center gap-2"><input type="checkbox" id="f-active" ${t.active !== false ? 'checked' : ''}><label for="f-active" class="text-sm text-slate-700 dark:text-slate-300">Active</label></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline btn-sm" id="m-cancel">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="m-save">${isEdit ? 'Update' : 'Create'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  const close = () => wrap.remove();
+  wrap.querySelector('#m-close').onclick = close;
+  wrap.querySelector('#m-cancel').onclick = close;
+  wrap.querySelector('.modal-backdrop').onclick = close;
+
+  // When domain changes, update week options to match domain's week count
+  wrap.querySelector('#f-domain').onchange = (e) => {
+    const selOpt = e.target.options[e.target.selectedIndex];
+    const maxW = Number(selOpt.dataset.weeks) || 4;
+    const weekSel = wrap.querySelector('#f-week');
+    const curWeek = Number(weekSel.value) || 1;
+    weekSel.innerHTML = buildWeekOpts(maxW, Math.min(curWeek, maxW));
+    const hint = wrap.querySelector('#week-hint');
+    if (hint) hint.textContent = `(${maxW} week${maxW > 1 ? 's' : ''} available for this domain)`;
+  };
+
+  wrap.querySelector('#m-save').onclick = async () => {
+    const title = wrap.querySelector('#f-title').value.trim();
+    if (!title) return toast('Title is required', 'error');
+    const linksRaw = wrap.querySelector('#f-links').value.split('\n').map(s => s.trim()).filter(Boolean);
+    for (const lnk of linksRaw) {
+      if (!lnk.startsWith('http')) return toast(`Invalid link: "${lnk}" must start with http`, 'error');
+    }
+    const domainId = wrap.querySelector('#f-domain').value;
+    const domObj = domains.find(d => d.id === domainId);
+    const data = {
+      domainId,
+      domainName: domObj ? domObj.name : '',
+      week: Number(wrap.querySelector('#f-week').value),
+      title,
+      description: wrap.querySelector('#f-desc').value.trim(),
+      instructions: wrap.querySelector('#f-inst').value.trim(),
+      deadline: wrap.querySelector('#f-deadline').value || '',
+      links: linksRaw,
+      order: Number(wrap.querySelector('#f-order').value) || 0,
+      active: wrap.querySelector('#f-active').checked
+    };
+    const saveBtn = wrap.querySelector('#m-save');
+    saveBtn.disabled = true;
+    try {
+      const newId = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const id = isEdit ? t.id : newId('task');
+      await saveTask(data, id);
+      toast(isEdit ? 'Task updated' : 'Task created', 'success');
+      close();
+      await load();
+    } catch (e) { toast(e.message, 'error'); saveBtn.disabled = false; }
+  };
+}
+
+const { user, settings } = await initAdminPage('tasks');
+await load();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+﻿{
+    "keyId":  "rzp_test_TYeA8mMupmzryt",
+    "companyName":  "Raksude Technologies",
+    "keySecret":  "rzp_test_secret_demo",
+    "webhookSecret":  "rzp_webhook_secret_demo",
+    "currency":  "INR"
+}

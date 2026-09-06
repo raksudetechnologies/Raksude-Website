@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feedback · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, exportCSV, toast, fmtTs, debounce } from '../assets/js/utils.js';
+import { listFeedback } from '../assets/js/database.js';
+
+const content = document.getElementById('content');
+let feedback = [];
+let fSearch = '';
+
+const STAR_FILLED = '<svg class="w-4 h-4 text-amber-400 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z"/></svg>';
+const STAR_EMPTY = '<svg class="w-4 h-4 text-slate-300 dark:text-slate-600 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z"/></svg>';
+
+function starsHtml(rating) {
+  let html = '';
+  for (let i = 1; i <= 5; i++) html += i <= rating ? STAR_FILLED : STAR_EMPTY;
+  return html;
+}
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    feedback = await listFeedback();
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function filtered() {
+  if (!fSearch) return feedback;
+  const q = fSearch.toLowerCase();
+  return feedback.filter(f =>
+    (f.name || '').toLowerCase().includes(q) ||
+    (f.studentId || '').toLowerCase().includes(q) ||
+    (f.comment || '').toLowerCase().includes(q)
+  );
+}
+
+function render() {
+  const all = feedback;
+  const avgRating = all.length ? (all.reduce((s, f) => s + Number(f.rating || 0), 0) / all.length).toFixed(1) : '0.0';
+  const totalCount = all.length;
+
+  const list = filtered();
+  const rows = list.map(f => `<tr>
+    <td><span class="font-medium">${esc(f.name || '—')}</span><br><span class="text-xs text-slate-400">${esc(f.studentId || '')}</span></td>
+    <td>${starsHtml(Number(f.rating || 0))}</td>
+    <td class="max-w-xs truncate" title="${esc(f.comment || '')}">${esc(f.comment || '—')}</td>
+    <td>${fmtTs(f.createdAt)}</td>
+  </tr>`).join('');
+
+  content.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div class="card p-5 flex items-center gap-4">
+        <div class="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400">${avgRating}</div>
+        <div>
+          <div class="flex items-center gap-1">${starsHtml(Math.round(Number(avgRating)))}</div>
+          <p class="text-xs text-slate-500 mt-1">Average Rating</p>
+        </div>
+      </div>
+      <div class="card p-5 flex items-center gap-4">
+        <div class="text-4xl font-extrabold text-slate-900 dark:text-white">${totalCount}</div>
+        <div>
+          <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Total Responses</p>
+          <p class="text-xs text-slate-500 mt-1">Feedback submissions</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">Feedback</h2>
+      <button id="export-btn" class="btn btn-outline">Export CSV</button>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input class="input w-auto min-w-[250px]" id="f-search" placeholder="Search student name or comment..." value="${esc(fSearch)}">
+    </div>
+    <div class="card overflow-x-auto">
+      ${list.length ? `<table class="table">
+        <thead><tr><th>Student</th><th>Rating</th><th>Comment</th><th>Date</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No feedback received yet.')}
+    </div>`;
+
+  const searchInput = document.getElementById('f-search');
+  searchInput.oninput = debounce(e => { fSearch = e.target.value; render(); }, 250);
+
+  document.getElementById('export-btn').onclick = () => {
+    if (!list.length) return toast('No data to export', 'error');
+    exportCSV('feedback.csv', list.map(f => ({
+      StudentID: f.studentId, Name: f.name, Rating: f.rating,
+      Comment: f.comment || '', Date: fmtTs(f.createdAt)
+    })));
+  };
+}
+
+const { user, settings } = await initAdminPage('feedback');
+await load();
+</script>
+</body>
+</html>

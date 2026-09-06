@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply for Internship — Internship Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased">
+
+  <div id="nav"></div>
+
+  <!-- Page Header -->
+  <section class="bg-gradient-to-br from-indigo-600 to-blue-700 text-white py-12 md:py-16">
+    <div class="max-w-4xl mx-auto px-6 text-center" data-aos="fade-up">
+      <h1 class="text-3xl md:text-4xl font-extrabold mb-3">Internship Application</h1>
+      <p class="text-indigo-100 text-lg">Fill in your details below to apply for a structured internship program.</p>
+    </div>
+  </section>
+
+  <!-- Step Indicator -->
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 mt-8 sm:mt-10 mb-2">
+    <div class="flex items-center justify-between text-sm" id="stepIndicator">
+      <div class="flex flex-col items-center step-item active" data-step="1">
+        <div class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm step-circle shadow-sm">1</div>
+        <span class="mt-1 hidden sm:block font-medium">Personal</span>
+      </div>
+      <div class="flex-1 h-0.5 bg-gray-300 dark:bg-gray-600 mx-2 step-line"></div>
+      <div class="flex flex-col items-center step-item" data-step="2">
+        <div class="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-500 flex items-center justify-center font-bold text-sm step-circle">2</div>
+        <span class="mt-1 hidden sm:block font-medium">Academic</span>
+      </div>
+      <div class="flex-1 h-0.5 bg-gray-300 dark:bg-gray-600 mx-2 step-line"></div>
+      <div class="flex flex-col items-center step-item" data-step="3">
+        <div class="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-500 flex items-center justify-center font-bold text-sm step-circle">3</div>
+        <span class="mt-1 hidden sm:block font-medium">Internship</span>
+      </div>
+      <div class="flex-1 h-0.5 bg-gray-300 dark:bg-gray-600 mx-2 step-line"></div>
+      <div class="flex flex-col items-center step-item" data-step="4">
+        <div class="w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-500 flex items-center justify-center font-bold text-sm step-circle">4</div>
+        <span class="mt-1 hidden sm:block font-medium">Review</span>
+      </div>
+    </div>
+    <p class="sm:hidden text-center text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-2.5" id="mobileStepLabel">Step 1 of 4: Personal Information</p>
+  </div>
+
+  <!-- Form Container -->
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
+    <form id="appForm" class="card p-5 sm:p-8 mt-4 sm:mt-6" novalidate>
+
+      <!-- Step 1: Personal -->
+      <div class="form-step" data-step="1">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-lucide="user" class="w-5 h-5 text-indigo-600"></i> Personal Information</h2>
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1">Full Name *</label>
+            <input type="text" id="fullName" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="Enter your full name">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Date of Birth *</label>
+            <input type="date" id="dob" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Gender *</label>
+            <select id="gender" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Email Address *</label>
+            <input type="email" id="email" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="you@example.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Phone Number *</label>
+            <input type="tel" id="phone" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="+91 XXXXX XXXXX">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1">Address *</label>
+            <input type="text" id="address" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="Street address">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">City *</label>
+            <input type="text" id="city" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">State *</label>
+            <input type="text" id="state" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1">Country *</label>
+            <input type="text" id="country" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" value="India">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Academic -->
+      <div class="form-step hidden" data-step="2">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5 text-indigo-600"></i> Academic Information</h2>
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1">College / University Name *</label>
+            <input type="text" id="college" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Degree *</label>
+            <input type="text" id="degree" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="e.g. B.Tech, BCA, MCA">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Department *</label>
+            <input type="text" id="department" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="e.g. Computer Science">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Year of Study *</label>
+            <select id="yearOfStudy" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+              <option value="">Select Year</option>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+              <option value="Postgraduate">Postgraduate</option>
+              <option value="Graduated">Graduated</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Roll / Registration No *</label>
+            <input type="text" id="rollNo" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Internship -->
+      <div class="form-step hidden" data-step="3">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-lucide="briefcase" class="w-5 h-5 text-indigo-600"></i> Internship Details</h2>
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1">Internship Domain *</label>
+            <select id="domain" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+              <option value="">Loading domains...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Duration</label>
+            <input type="text" id="domainDuration" value="Select domain to view" disabled class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 px-4 py-2.5 text-gray-500 cursor-not-allowed">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Registration Date</label>
+            <input type="text" id="regDate" disabled class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 px-4 py-2.5 text-gray-500 cursor-not-allowed">
+          </div>
+        </div>
+
+        <h3 class="text-lg font-bold mt-8 mb-4 flex items-center gap-2"><i data-lucide="award" class="w-5 h-5 text-emerald-600"></i> Certificate Details</h3>
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1">Name on Certificate *</label>
+            <input type="text" id="certName" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+            <p class="text-xs text-gray-500 mt-1">Defaults to your full name. Edit if needed.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">College (on Certificate)</label>
+            <input type="text" id="certCollege" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Department (on Certificate)</label>
+            <input type="text" id="certDept" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div class="form-step hidden" data-step="4">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-lucide="clipboard-check" class="w-5 h-5 text-indigo-600"></i> Review & Submit</h2>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-6">Please review all information before submitting your application.</p>
+        <div id="reviewContent" class="space-y-4"></div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" id="prevBtn" class="hidden px-6 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition">Previous</button>
+        <div class="ml-auto flex gap-3">
+          <button type="button" id="nextBtn" class="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition shadow-lg">Next Step</button>
+          <button type="submit" id="submitBtn" class="hidden px-8 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition shadow-lg">Submit Application</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Success State -->
+    <div id="successPanel" class="hidden card p-10 text-center mt-6">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600"><i data-lucide="check-circle-2" class="w-10 h-10"></i></div>
+      <h2 class="text-3xl font-bold mb-4 text-green-700 dark:text-green-400">Application Submitted!</h2>
+      <div class="max-w-md mx-auto space-y-3 text-left mb-8">
+        <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700"><span class="font-medium text-gray-600 dark:text-gray-400">Application ID</span><span id="successAppId" class="font-bold text-indigo-600"></span></div>
+        <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700"><span class="font-medium text-gray-600 dark:text-gray-400">Start Date</span><span id="successStart" class="font-bold"></span></div>
+        <div class="flex justify-between py-2 border-b border-gray-200 dark:border-gray-700"><span class="font-medium text-gray-600 dark:text-gray-400">End Date</span><span id="successEnd" class="font-bold"></span></div>
+      </div>
+      <div id="lmsCreds" class="hidden max-w-md mx-auto text-left mb-6 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-5">
+        <p class="font-bold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center gap-2"><i data-lucide="key-round" class="w-5 h-5"></i> Your LMS Login Details</p>
+        <div class="flex justify-between py-1.5 text-sm"><span class="text-gray-600 dark:text-gray-400">Username (Email)</span><span id="lmsUser" class="font-bold font-mono"></span></div>
+        <div class="flex justify-between py-1.5 text-sm"><span class="text-gray-600 dark:text-gray-400">Password (Mobile Number)</span><span id="lmsPass" class="font-bold font-mono"></span></div>
+        <button type="button" id="btnCopyCreds" class="mt-3.5 w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-sm">
+          <i data-lucide="copy" class="w-4 h-4"></i> <span id="copyCredsText">Copy Login Details</span>
+        </button>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2.5">Use your registered email as the username and your mobile number as the password on the LMS Login page.</p>
+      </div>
+      <p id="lmsError" class="hidden max-w-md mx-auto text-sm text-amber-600 dark:text-amber-400 mb-6"></p>
+      <p id="successMessage" class="text-gray-600 dark:text-gray-300 text-sm mb-6">Your application has been approved automatically and your internship starts today. Log in to the LMS to begin your tasks.</p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="lms.html" class="inline-flex items-center px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition">Go to LMS Login</a>
+        <a href="index.html" class="inline-flex items-center px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition">Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script type="module">
+    import { esc, todayStr, fmtDate, addDays, qs, toast, genPassword, sendEmail } from './assets/js/utils.js';
+    import { listDomains, createApplication, getSettings } from './assets/js/database.js';
+    import { createLmsAccount } from './assets/js/auth.js';
+    import { applyPublicChrome } from './assets/js/settings.js';
+
+    let currentStep = 1;
+    const totalSteps = 4;
+    let domainsList = [];
+    let submitting = false;
+
+    (async () => {
+      AOS.init({ duration: 700, once: true });
+      lucide.createIcons();
+
+      try { await applyPublicChrome('apply'); } catch(e) { console.error(e); }
+
+      // Set registration date
+      document.getElementById('regDate').value = fmtDate(todayStr());
+
+      // Auto-fill cert fields from personal/academic
+      const fullNameEl = document.getElementById('fullName');
+      const collegeEl = document.getElementById('college');
+      const deptEl = document.getElementById('department');
+      const certNameEl = document.getElementById('certName');
+      const certCollegeEl = document.getElementById('certCollege');
+      const certDeptEl = document.getElementById('certDept');
+
+      fullNameEl?.addEventListener('input', () => { if (certNameEl && !certNameEl.dataset.edited) certNameEl.value = fullNameEl.value; });
+      certNameEl?.addEventListener('input', () => { if (certNameEl) certNameEl.dataset.edited = '1'; });
+      collegeEl?.addEventListener('input', () => { if (certCollegeEl && !certCollegeEl.dataset.edited) certCollegeEl.value = collegeEl.value; });
+      certCollegeEl?.addEventListener('input', () => { if (certCollegeEl) certCollegeEl.dataset.edited = '1'; });
+      deptEl?.addEventListener('input', () => { if (certDeptEl && !certDeptEl.dataset.edited) certDeptEl.value = deptEl.value; });
+      certDeptEl?.addEventListener('input', () => { if (certDeptEl) certDeptEl.dataset.edited = '1'; });
+
+      // Load domains
+      const domainSelect = document.getElementById('domain');
+      const domainDurationEl = document.getElementById('domainDuration');
+      function updateDomainDuration() {
+        const dId = domainSelect.value;
+        const d = domainsList.find(x => x.id === dId);
+        if (domainDurationEl) {
+          if (d) {
+            const days = Number(d.duration) || 30;
+            const weeks = d.weeks || Math.max(1, Math.round(days / 7));
+            domainDurationEl.value = `${days} Days (${weeks} Week${weeks > 1 ? 's' : ''})`;
+          } else {
+            domainDurationEl.value = 'Select domain to view';
+          }
+        }
+      }
+      domainSelect.addEventListener('change', updateDomainDuration);
+
+      try {
+        domainsList = await listDomains({ includeInactive: false });
+        domainSelect.innerHTML = '<option value="">-- Select a Domain --</option>' +
+          domainsList.map(d => `<option value="${esc(d.id)}">${esc(d.name)} (${d.duration || 30} days)</option>`).join('');
+
+        // Pre-select from query param
+        const preDomain = qs('domain');
+        if (preDomain) {
+          domainSelect.value = preDomain;
+        }
+        updateDomainDuration();
+      } catch (e) {
+        domainSelect.innerHTML = '<option value="">Failed to load domains</option>';
+        console.error(e);
+      }
+
+      updateStepUI();
+    })();
+
+    // Step navigation
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (validateStep(currentStep)) {
+        if (currentStep < totalSteps) {
+          currentStep++;
+          if (currentStep === 4) buildReview();
+          updateStepUI();
+        }
+      }
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;
+        updateStepUI();
+      }
+    });
+
+    function updateStepUI() {
+      document.querySelectorAll('.form-step').forEach(el => el.classList.add('hidden'));
+      document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('hidden');
+
+      document.getElementById('prevBtn').classList.toggle('hidden', currentStep === 1);
+      document.getElementById('nextBtn').classList.toggle('hidden', currentStep === totalSteps);
+      document.getElementById('submitBtn').classList.toggle('hidden', currentStep !== totalSteps);
+
+      // Update mobile step label
+      const stepLabels = [
+        'Step 1 of 4: Personal Information',
+        'Step 2 of 4: Academic Information',
+        'Step 3 of 4: Internship Domain',
+        'Step 4 of 4: Review & Submit'
+      ];
+      const mLabel = document.getElementById('mobileStepLabel');
+      if (mLabel) mLabel.textContent = stepLabels[currentStep - 1] || '';
+
+      // Update step indicator
+      document.querySelectorAll('.step-item').forEach(el => {
+        const s = parseInt(el.dataset.step);
+        const circle = el.querySelector('.step-circle');
+        if (s <= currentStep) {
+          circle.className = 'w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm step-circle shadow-sm';
+          el.classList.add('active');
+        } else {
+          circle.className = 'w-9 h-9 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-500 flex items-center justify-center font-bold text-sm step-circle';
+          el.classList.remove('active');
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function validateStep(step) {
+      const container = document.querySelector(`.form-step[data-step="${step}"]`);
+      const inputs = container.querySelectorAll('[required]');
+      let valid = true;
+      inputs.forEach(input => {
+        input.classList.remove('ring-2', 'ring-red-500');
+        if (!input.value.trim()) {
+          input.classList.add('ring-2', 'ring-red-500');
+          valid = false;
+        }
+      });
+      // Email validation on step 1
+      if (step === 1) {
+        const emailEl = document.getElementById('email');
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailEl.value && !emailRe.test(emailEl.value)) {
+          emailEl.classList.add('ring-2', 'ring-red-500');
+          toast('Please enter a valid email address.', 'error');
+          return false;
+        }
+      }
+      if (!valid) toast('Please fill in all required fields.', 'error');
+      return valid;
+    }
+
+    function gv(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+    function buildReview() {
+      const domainOpt = document.getElementById('domain');
+      const domainId = domainOpt.value;
+      const domainObj = domainsList.find(d => d.id === domainId);
+      const domainName = domainOpt.options[domainOpt.selectedIndex]?.textContent || '';
+      const durDays = Number(domainObj?.duration) || 30;
+      const durWeeks = domainObj?.weeks || Math.max(1, Math.round(durDays / 7));
+      const durLabel = `${durDays} Days (${durWeeks} Week${durWeeks > 1 ? 's' : ''})`;
+      const startDateStr = todayStr();
+      const endDateStr = addDays(startDateStr, durDays - 1);
+
+      const sections = [
+        { title: 'Personal Information', icon: 'user', rows: [
+          ['Full Name', gv('fullName')], ['Date of Birth', gv('dob') ? fmtDate(gv('dob')) : ''], ['Gender', gv('gender')],
+          ['Email', gv('email')], ['Phone', gv('phone')], ['Address', `${gv('address')}, ${gv('city')}, ${gv('state')}, ${gv('country')}`]
+        ]},
+        { title: 'Academic Information', icon: 'graduation-cap', rows: [
+          ['College', gv('college')], ['Degree', gv('degree')], ['Department', gv('department')],
+          ['Year of Study', gv('yearOfStudy')], ['Roll No', gv('rollNo')]
+        ]},
+        { title: 'Internship Details', icon: 'briefcase', rows: [
+          ['Domain', domainName], ['Duration', durLabel], ['Start Date', fmtDate(startDateStr)], ['End Date', fmtDate(endDateStr)],
+          ['Certificate Name', gv('certName')], ['Certificate College', gv('certCollege') || gv('college')],
+          ['Certificate Department', gv('certDept') || gv('department')]
+        ]}
+      ];
+
+      document.getElementById('reviewContent').innerHTML = sections.map(sec => `
+        <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div class="bg-gray-50 dark:bg-gray-800 px-5 py-3 font-bold flex items-center gap-2">
+            <i data-lucide="${sec.icon}" class="w-4 h-4 text-indigo-600"></i>${esc(sec.title)}
+          </div>
+          <div class="divide-y divide-gray-100 dark:divide-gray-700">
+            ${sec.rows.map(([label, val]) => `
+              <div class="flex justify-between px-5 py-2.5 text-sm">
+                <span class="text-gray-500 dark:text-gray-400">${esc(label)}</span>
+                <span class="font-medium text-right max-w-[60%]">${esc(val)}</span>
+              </div>`).join('')}
+          </div>
+        </div>`).join('');
+      lucide.createIcons();
+    }
+
+    // Submit
+    document.getElementById('appForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (submitting) return;
+      submitting = true;
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const domainSelect = document.getElementById('domain');
+        const domainId = domainSelect.value;
+        const domainObj = domainsList.find(d => d.id === domainId);
+        const domainName = domainSelect.options[domainSelect.selectedIndex]?.textContent || '';
+        const durDays = Number(domainObj?.duration) || 30;
+        const start = todayStr();
+        const end = addDays(start, durDays - 1);
+
+        const appData = {
+          personal: {
+            fullName: gv('fullName'), dob: gv('dob'), gender: gv('gender'),
+            email: gv('email'), phone: gv('phone'), address: gv('address'),
+            city: gv('city'), state: gv('state'), country: gv('country')
+          },
+          academic: {
+            college: gv('college'), degree: gv('degree'), department: gv('department'),
+            yearOfStudy: gv('yearOfStudy'), rollNo: gv('rollNo')
+          },
+          internship: { domainId, domainName, duration: durDays, startDate: start, endDate: end },
+          duration: durDays,
+          startDate: start,
+          endDate: end,
+          certificate: {
+            name: gv('certName') || gv('fullName'),
+            college: gv('certCollege') || gv('college'),
+            dept: gv('certDept') || gv('department')
+          }
+        };
+
+        const app = await createApplication(appData);
+
+        // Fully automated onboarding: LMS username = application email, password = application mobile number.
+        // (Built from form data — anonymous visitors cannot read student docs.)
+        let lms = null;
+        let lmsError = '';
+        try {
+          const student = {
+            studentId: app.studentId,
+            name: appData.personal.fullName,
+            email: appData.personal.email,
+            phone: appData.personal.phone
+          };
+          const username = String(appData.personal.email || '').trim().toLowerCase();
+          const mobilePass = String(appData.personal.phone || '').replace(/\D/g, '');
+          const password = mobilePass.length >= 6 ? mobilePass : genPassword();
+          lms = { username, password };
+
+          try {
+            await createLmsAccount(student, username, password);
+          } catch (accErr) {
+            console.warn('createLmsAccount note:', accErr.message);
+          }
+
+          try {
+            const settings = await getSettings();
+            await sendEmail(settings, {
+              to_email: student.email, to_name: student.name,
+              subject: 'Your LMS Login Details',
+              message: `Your internship application is approved.\n\nLog in at the LMS Login page with:\nUsername (email): ${username}\nPassword (mobile number): ${password}\n\nStart your tasks now!`
+            });
+          } catch (em) { console.warn('Credentials email skipped', em); }
+        } catch (e) {
+          console.warn('LMS setup non-fatal warning:', e);
+        }
+
+        // Show success
+        document.getElementById('appForm').classList.add('hidden');
+        document.getElementById('stepIndicator').parentElement.classList.add('hidden');
+        const panel = document.getElementById('successPanel');
+        panel.classList.remove('hidden');
+        document.getElementById('successAppId').textContent = app.appId || app.id || 'N/A';
+        document.getElementById('successStart').textContent = fmtDate(app.startDate || start);
+        document.getElementById('successEnd').textContent = fmtDate(app.endDate || end);
+
+        const actualDays = app.duration || durDays;
+        const successMsg = document.getElementById('successMessage');
+        if (successMsg) {
+          successMsg.textContent = `Your application has been approved automatically and your ${actualDays}-day internship starts today. Log in to the LMS to begin your tasks.`;
+        }
+
+        if (app.alreadyApplied) {
+          const b = document.createElement('div');
+          b.className = 'mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-sm flex items-center gap-3';
+          b.innerHTML = `
+            <span class="text-2xl shrink-0">ℹ️</span>
+            <div>
+              <p class="font-bold">You are already registered for this internship domain!</p>
+              <p class="text-xs mt-0.5">Your existing registration and LMS login credentials are confirmed below. Proceed to LMS Login.</p>
+            </div>
+          `;
+          panel.prepend(b);
+        }
+
+        if (lms) {
+          document.getElementById('lmsUser').textContent = lms.username;
+          document.getElementById('lmsPass').textContent = lms.password;
+          document.getElementById('lmsCreds').classList.remove('hidden');
+
+          document.getElementById('btnCopyCreds')?.addEventListener('click', async () => {
+            const user = document.getElementById('lmsUser').textContent;
+            const pass = document.getElementById('lmsPass').textContent;
+            const text = `Internship LMS Credentials\nUsername: ${user}\nPassword: ${pass}\nPortal: ${location.origin}/lms.html`;
+            try {
+              await navigator.clipboard.writeText(text);
+              const label = document.getElementById('copyCredsText');
+              if (label) label.textContent = 'Copied to Clipboard!';
+              toast('Credentials copied to clipboard!', 'success');
+              setTimeout(() => { if (label) label.textContent = 'Copy Login Details'; }, 3000);
+            } catch {
+              toast('Please select and copy credentials manually.', 'warning');
+            }
+          });
+        } else if (lmsError) {
+          const errEl = document.getElementById('lmsError');
+          errEl.textContent = lmsError;
+          errEl.classList.remove('hidden');
+        }
+        lucide.createIcons();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        console.error(err);
+        toast('Failed to submit application: ' + (err.message || 'Please try again.'), 'error');
+        btn.disabled = false;
+        btn.textContent = 'Submit Application';
+        submitting = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS Login — Internship Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    @keyframes floatBlob {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-18px); }
+    }
+    .blob-a { animation: floatBlob 9s ease-in-out infinite; }
+    .blob-b { animation: floatBlob 12s ease-in-out infinite 3s; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up { animation: slideUp 0.55s cubic-bezier(0.16,1,0.3,1) both; }
+    .glass-card {
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .dark .glass-card {
+      background: rgba(15,23,42,0.88);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .lms-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.85rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      background: rgba(255,255,255,0.75);
+      color: #0f172a;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    .lms-input:focus {
+      border-color: #6366f1;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .dark .lms-input {
+      background: rgba(30,41,59,0.75);
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+    .dark .lms-input:focus {
+      border-color: #818cf8;
+      background: rgba(30,41,59,0.95);
+      box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
+    }
+    .lms-btn {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9375rem;
+      border-radius: 0.875rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .lms-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .lms-btn span { position: relative; z-index: 1; }
+    .lms-btn:hover::before { opacity: 1; }
+    .lms-btn:hover { box-shadow: 0 12px 32px rgba(99,102,241,0.45); transform: translateY(-1px); }
+    .lms-btn:active { transform: translateY(0); }
+    .lms-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 overflow-x-hidden antialiased relative">
+
+  <!-- Blobs -->
+  <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+    <div class="blob-a absolute -top-40 -right-40 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/8 rounded-full blur-3xl"></div>
+    <div class="blob-b absolute -bottom-40 -left-20 w-[450px] h-[450px] bg-violet-500/10 dark:bg-violet-500/8 rounded-full blur-3xl"></div>
+  </div>
+
+  <div id="nav"></div>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex items-center justify-center px-4 py-16 sm:py-20">
+    <div class="w-full max-w-md slide-up">
+
+      <!-- Card -->
+      <div class="glass-card rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-indigo-950/40 p-8 sm:p-10">
+
+        <!-- Header -->
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white p-1.5 mb-4 shadow-lg shadow-indigo-500/10 border border-slate-200/80">
+            <img src="assets/img/company-logo.png" alt="Raksude Tech" class="w-full h-full object-contain">
+          </div>
+          <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Student LMS Login</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">Access your internship dashboard, tasks, and certificate.</p>
+        </div>
+
+        <!-- Security badge -->
+        <div class="flex items-center justify-center gap-1.5 mb-6 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+          <span>Secure Login · Your data is protected</span>
+        </div>
+
+        <!-- Form -->
+        <form id="loginForm" novalidate class="space-y-4">
+          <!-- Username -->
+          <div>
+            <label for="username" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email / Mobile Number</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+              </span>
+              <input type="text" id="username" required autocomplete="username" class="lms-input" placeholder="Enter your email or mobile number">
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="password" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password <span class="text-slate-400 font-normal">(Your mobile number)</span></label>
+              <button type="button" id="toggle-pw" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                <svg id="eye-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                <span id="toggle-pw-text">Show</span>
+              </button>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+              </span>
+              <input type="password" id="password" required autocomplete="current-password" class="lms-input" placeholder="Enter your mobile number">
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div id="errorMsg" class="hidden items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-300 font-medium">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+            <span id="errorText"></span>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" id="loginBtn" class="lms-btn">
+            <span id="loginBtnLabel">Login to Student Dashboard</span>
+          </button>
+        </form>
+
+        <!-- Help text -->
+        <div class="mt-6 pt-5 border-t border-slate-200/70 dark:border-slate-800/70 space-y-3">
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-400">
+            <p class="font-semibold text-slate-700 dark:text-slate-300 mb-1">How to Login:</p>
+            <p>• <strong>Username:</strong> Your registered email address</p>
+            <p>• <strong>Password:</strong> Your 10-digit mobile number</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">No account yet? Apply for an internship first.</p>
+            <a href="apply.html" class="text-sm text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Apply for Internship →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Back to home -->
+      <p class="text-center text-xs text-slate-400 mt-4">
+        <a href="index.html" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center justify-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Back to Home
+        </a>
+      </p>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script type="module">
+    import { esc } from './assets/js/utils.js';
+    import { studentLogin } from './assets/js/auth.js';
+    import { applyPublicChrome } from './assets/js/settings.js';
+
+    (async () => {
+      lucide.createIcons();
+      try { await applyPublicChrome('lms'); } catch(e) { console.error(e); }
+    })();
+
+    // Show/hide password
+    const pwInput = document.getElementById('password');
+    const togglePw = document.getElementById('toggle-pw');
+    const togglePwText = document.getElementById('toggle-pw-text');
+    togglePw.addEventListener('click', () => {
+      const isPass = pwInput.type === 'password';
+      pwInput.type = isPass ? 'text' : 'password';
+      togglePwText.textContent = isPass ? 'Hide' : 'Show';
+    });
+
+    let loggingIn = false;
+    const form = document.getElementById('loginForm');
+    const errorDiv = document.getElementById('errorMsg');
+    const errorText = document.getElementById('errorText');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginBtnLabel = document.getElementById('loginBtnLabel');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (loggingIn) return;
+      loggingIn = true;
+
+      const identifier = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      errorDiv.classList.add('hidden');
+      errorDiv.classList.remove('flex');
+      loginBtn.disabled = true;
+      loginBtnLabel.textContent = 'Logging in…';
+
+      try {
+        await studentLogin(identifier, password);
+        loginBtnLabel.textContent = 'Redirecting…';
+        location.href = 'student.html';
+      } catch (err) {
+        errorText.textContent = err.message || 'Login failed. Please check your credentials.';
+        errorDiv.classList.remove('hidden');
+        errorDiv.classList.add('flex');
+        loggingIn = false;
+        loginBtn.disabled = false;
+        loginBtnLabel.textContent = 'Login to Student Dashboard';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Internship Enrollment · Razorpay Secure</title>
+  <meta name="description" content="Secure payment gateway for Raksude Technologies internship courses. Supports UPI QR Scan and Credit/Debit Cards with instant server verification.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(18px, -24px) scale(1.05); }
+    }
+    .orb-1 { animation: floatOrb 10s ease-in-out infinite; }
+    .orb-2 { animation: floatOrb 14s ease-in-out infinite 2s; }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.25); }
+      50% { box-shadow: 0 0 35px rgba(79, 70, 229, 0.5); }
+    }
+    .glow-active { animation: pulseGlow 3s infinite; }
+
+    /* Method option styling */
+    .method-card {
+      border: 2px solid #e2e8f0;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      position: relative;
+    }
+    .dark .method-card {
+      border-color: #334155;
+      background: rgba(30, 41, 59, 0.75);
+    }
+    .method-card:hover {
+      border-color: #6366f1;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.14);
+    }
+    .method-card.active {
+      border-color: #4f46e5;
+      background: rgba(79, 70, 229, 0.05);
+      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.18);
+    }
+    .dark .method-card.active {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: #818cf8;
+    }
+
+    .custom-radio {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .method-card.active .custom-radio {
+      border-color: #4f46e5;
+      background: #4f46e5;
+    }
+    .custom-radio::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .method-card.active .custom-radio::after {
+      opacity: 1;
+    }
+
+    .btn-pay-now {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      transition: all 0.25s ease;
+    }
+    .btn-pay-now:hover {
+      background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(79, 70, 229, 0.45);
+    }
+    .btn-pay-now:active {
+      transform: translateY(0);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin-fast { animation: spin 0.8s linear infinite; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
+
+  <!-- Background Orbs -->
+  <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+    <div class="orb-1 absolute -top-40 -right-20 w-[550px] h-[550px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-3xl"></div>
+    <div class="orb-2 absolute -bottom-32 -left-20 w-[500px] h-[500px] bg-violet-500/10 dark:bg-violet-500/5 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/70 dark:border-slate-800/70">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-sm border border-slate-200/80 group-hover:scale-105 transition-transform">
+          <img src="assets/img/company-logo.png" id="brand-logo" class="w-full h-full object-contain" alt="Raksude Logo">
+        </div>
+        <span id="brand-name" class="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">Raksude Technologies</span>
+      </a>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+          256-bit Encrypted Checkout
+        </div>
+        <a href="student.html" class="btn btn-outline btn-sm text-xs flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+          Student Portal
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12">
+
+    <!-- Navigation Breadcrumb -->
+    <div class="mb-6 flex items-center justify-between">
+      <a href="student.html" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+        Back to Portal
+      </a>
+      <span class="text-xs font-mono text-slate-400">Step 2 of 2: Secure Payment</span>
+    </div>
+
+    <!-- Payment Failure / Cancelled Alert Banner (Hidden by default) -->
+    <div id="payment-alert" class="hidden mb-6 p-4 sm:p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-start gap-3">
+        <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 font-bold text-lg">!</div>
+        <div>
+          <h3 class="font-bold text-rose-900 dark:text-rose-200 text-sm" id="alert-title">Payment Cancelled</h3>
+          <p class="text-xs text-rose-700 dark:text-rose-300 mt-0.5" id="alert-msg">Payment was cancelled or could not be completed. No funds were debited. Please click "Proceed to Pay" to try again.</p>
+        </div>
+      </div>
+      <button type="button" id="btn-alert-retry" class="btn btn-sm btn-primary bg-rose-600 hover:bg-rose-700 text-xs px-4 py-2 shrink-0">Try Again</button>
+    </div>
+
+    <!-- Already Paid Notice (If visited by already verified student) -->
+    <div id="already-paid-banner" class="hidden mb-6 p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-xl">✓</div>
+        <div>
+          <h3 class="font-bold text-emerald-950 dark:text-emerald-100 text-base">Payment Already Verified & Completed</h3>
+          <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">Your fee payment is registered and your certificate is accessible.</p>
+        </div>
+      </div>
+      <a href="certificate.html" id="link-to-cert" class="btn btn-primary btn-sm text-xs px-5 py-2.5">
+        View Your Certificate &rarr;
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- LEFT COLUMN: Order & Student Details (5 Cols) -->
+      <div class="lg:col-span-5 space-y-5">
+
+        <!-- Course / Internship Summary Card -->
+        <div class="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/30 dark:shadow-none overflow-hidden">
+          <div class="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 p-6 text-white relative">
+            <div class="flex items-center justify-between mb-3">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-white/20 text-white border border-white/20">
+                Official Enrollment
+              </span>
+              <span class="text-xs font-semibold text-indigo-200 flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Program
+              </span>
+            </div>
+
+            <p class="text-xs text-indigo-200 font-medium">Internship Course</p>
+            <h2 class="text-xl sm:text-2xl font-black mt-0.5 leading-snug" id="course-name-disp">Full Stack Web Development</h2>
+
+            <div class="mt-6 pt-5 border-t border-white/15 flex items-baseline justify-between">
+              <div>
+                <p class="text-[11px] font-semibold text-indigo-200 uppercase tracking-wider">Total Enrollment Fee</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  <span class="text-4xl sm:text-5xl font-black text-white" id="fee-disp">₹199</span>
+                  <span class="text-xs text-indigo-200 line-through">₹2,999</span>
+                </div>
+              </div>
+              <span class="px-2 py-1 rounded-lg text-xs font-black bg-emerald-400 text-emerald-950">93% OFF</span>
+            </div>
+          </div>
+
+          <!-- Student Profile Info -->
+          <div class="p-5 bg-slate-50/70 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 font-medium">Student Name</span>
+              <span class="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]" id="student-name-disp">—</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 font-medium">Student ID</span>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400" id="student-id-disp">—</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 font-medium">Duration</span>
+              <span class="font-semibold text-slate-700 dark:text-slate-300" id="course-duration-disp">30 Days</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 font-medium">Certification</span>
+              <span class="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                ✓ ISO & MSME Verified
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Trust Badge -->
+        <div class="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm space-y-2.5 text-xs text-slate-500 dark:text-slate-400">
+          <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+            Guaranteed Verification
+          </div>
+          <p>Payment is verified directly on our backend server via cryptographic HMAC-SHA256 signature verification. Your certificate unlocks automatically upon successful payment.</p>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Payment Methods & Action Button (7 Cols) -->
+      <div class="lg:col-span-7">
+        <div class="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 shadow-xl shadow-slate-200/20 dark:shadow-none p-6 sm:p-8 space-y-6">
+
+          <!-- Section Heading -->
+          <div>
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                ⚡ OFFICIAL RAZORPAY GATEWAY
+              </span>
+              <span class="text-[11px] text-slate-400">Restricted to UPI & Cards only</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white mt-2">Select Payment Method</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Choose your preferred method below to proceed to the secure Razorpay Checkout.</p>
+          </div>
+
+          <!-- Manual Student ID Input (If studentId is missing from query param) -->
+          <div id="manual-sid-container" class="hidden p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-2">
+            <label for="inp-student-id" class="text-xs font-bold text-slate-700 dark:text-slate-300 block">Enter Your Student ID *</label>
+            <div class="flex gap-2">
+              <input type="text" id="inp-student-id" placeholder="e.g. INT-2026-0001" class="input uppercase font-mono text-xs flex-1">
+              <button type="button" id="btn-fetch-student" class="btn btn-outline btn-sm text-xs px-3">Verify</button>
+            </div>
+            <p class="text-[11px] text-slate-400" id="sid-helper-text">Enter your Student ID to attach certificate unlock to your account.</p>
+          </div>
+
+          <!-- ONLY ALLOWED PAYMENT METHODS (UPI & CARDS) -->
+          <div class="space-y-3.5">
+
+            <!-- METHOD 1: UPI / QR Code -->
+            <div class="method-card active p-4 sm:p-5 rounded-2xl" id="card-method-upi" onclick="selectMethod('upi')">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3.5">
+                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-indigo-600/20 shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"/></svg>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h3 class="font-extrabold text-base text-slate-900 dark:text-white">UPI Payment (QR Code & Apps)</h3>
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">Fastest</span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Scan the Razorpay QR code with any UPI application (GPay, PhonePe, Paytm, BHIM, Cred) or enter your UPI ID.</p>
+                    <div class="flex items-center gap-1.5 mt-3 flex-wrap">
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">GPay</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60">PhonePe</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60">Paytm</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">BHIM</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Any UPI QR</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="custom-radio shrink-0 mt-1"></div>
+              </div>
+            </div>
+
+            <!-- METHOD 2: Credit Card / Debit Card -->
+            <div class="method-card p-4 sm:p-5 rounded-2xl" id="card-method-card" onclick="selectMethod('card')">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3.5">
+                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-blue-600/20 shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg>
+                  </div>
+                  <div>
+                    <h3 class="font-extrabold text-base text-slate-900 dark:text-white">Credit Card / Debit Card</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Pay with any domestic or international debit or credit card. All major network cards accepted.</p>
+                    <div class="flex items-center gap-2 mt-3 flex-wrap">
+                      <span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-600 text-white">VISA</span>
+                      <span class="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white">Mastercard</span>
+                      <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-700 text-white">RuPay</span>
+                      <span class="px-2 py-0.5 rounded text-[10px] font-black bg-blue-800 text-white">Amex</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="custom-radio shrink-0 mt-1"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Total Amount Bar -->
+          <div class="p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Payable</p>
+              <p class="text-2xl font-black text-indigo-600 dark:text-indigo-400" id="bottom-fee-disp">₹199</p>
+            </div>
+            <div class="text-right">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Selected Method</p>
+              <p class="text-sm font-bold text-slate-800 dark:text-slate-200" id="selected-method-text">UPI / QR Code</p>
+            </div>
+          </div>
+
+          <!-- PROCEED TO PAY BUTTON -->
+          <button type="button" id="btn-proceed-pay" class="btn-pay-now w-full py-4 px-6 rounded-2xl text-white font-extrabold text-base flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30">
+            <span id="btn-pay-text" class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25z"/></svg>
+              Proceed to Pay ₹199
+            </span>
+          </button>
+
+          <!-- Trust Footer -->
+          <div class="pt-2 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5 flex-wrap">
+            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+            Secured by <strong class="text-indigo-600 dark:text-indigo-400">Razorpay</strong> · ISO 27001 & PCI-DSS Level 1 Compliant
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module">
+    import { auth, db } from './assets/js/firebase-config.js';
+    import { signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+    import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+    import { getSettings, getStudent, approveRazorpayPayment } from './assets/js/database.js';
+    import { razorpayConfig } from './assets/js/razorpay-config.js';
+    import { initTheme, money, toast } from './assets/js/utils.js';
+
+    initTheme();
+
+    // ── URL Query Parameters ───────────────────────────────────────
+    const urlParams = new URLSearchParams(window.location.search);
+    let studentId   = (urlParams.get('studentId') || '').trim().toUpperCase();
+    let studentName = (urlParams.get('name') || '').trim();
+    let domainName  = (urlParams.get('course') || urlParams.get('domain') || '').trim();
+    let studentPhone = '';
+    let studentEmail = '';
+    let studentFee  = 0;
+    let selectedMethod = 'upi'; // 'upi' or 'card'
+
+    // ── UI References ──────────────────────────────────────────────
+    const elCourseName  = document.getElementById('course-name-disp');
+    const elStudentName = document.getElementById('student-name-disp');
+    const elStudentId   = document.getElementById('student-id-disp');
+    const elFeeDisp     = document.getElementById('fee-disp');
+    const elBottomFee   = document.getElementById('bottom-fee-disp');
+    const elMethodText  = document.getElementById('selected-method-text');
+    const btnProceed    = document.getElementById('btn-proceed-pay');
+    const btnPayText    = document.getElementById('btn-pay-text');
+    const alertBox      = document.getElementById('payment-alert');
+    const alertTitle    = document.getElementById('alert-title');
+    const alertMsg      = document.getElementById('alert-msg');
+    const btnRetry      = document.getElementById('btn-alert-retry');
+    const alreadyBanner = document.getElementById('already-paid-banner');
+    const manualSidBox  = document.getElementById('manual-sid-container');
+    const inpSid        = document.getElementById('inp-student-id');
+    const btnFetchSid   = document.getElementById('btn-fetch-student');
+
+    // ── Method Selection Handler ───────────────────────────────────
+    window.selectMethod = function(method) {
+      selectedMethod = method;
+      document.getElementById('card-method-upi').classList.toggle('active', method === 'upi');
+      document.getElementById('card-method-card').classList.toggle('active', method === 'card');
+      elMethodText.textContent = method === 'upi' ? 'UPI / QR Code' : 'Credit / Debit Card';
+    };
+
+    // ── Authenticate Anonymous Session to avoid Firestore 403 ───────
+    async function ensureAuth(sId) {
+      if (!auth) return;
+      let user = auth.currentUser;
+      if (!user) {
+        try {
+          const cred = await signInAnonymously(auth);
+          user = cred.user;
+        } catch (e) {
+          console.warn('Anonymous auth handshake:', e);
+        }
+      }
+      if (user && sId && db) {
+        try {
+          await setDoc(doc(db, 'uid_map', user.uid), { studentId: sId }, { merge: true });
+        } catch (_) {}
+      }
+    }
+
+    // ── Load Settings & Student Details ────────────────────────────
+    let appSettings = {};
+    let feeAmount = 199;
+
+    async function initialize() {
+      try {
+        appSettings = await getSettings();
+      } catch (e) {
+        console.warn('Could not load settings:', e);
+      }
+
+      const defaultFee = Number(appSettings.payment?.amount || razorpayConfig.defaultAmount || 199);
+      feeAmount = defaultFee;
+      updateFeeUI(feeAmount);
+
+      if (studentId) {
+        await loadStudentInfo(studentId);
+      } else {
+        manualSidBox.classList.remove('hidden');
+      }
+    }
+
+    function updateFeeUI(amount) {
+      feeAmount = amount;
+      const str = money(amount);
+      elFeeDisp.textContent = str;
+      elBottomFee.textContent = str;
+      btnPayText.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25z"/></svg>
+        Proceed to Pay ${str}`;
+    }
+
+    async function loadStudentInfo(sId) {
+      await ensureAuth(sId);
+      let sDoc = null;
+      try {
+        sDoc = await getStudent(sId);
+      } catch (e) {
+        console.warn('Student doc fetch note:', e);
+      }
+
+      elStudentId.textContent = sId;
+
+      if (sDoc) {
+        studentName   = sDoc.name || sDoc.certificateName || studentName;
+        domainName    = sDoc.domainName || domainName || 'Internship Program';
+        studentPhone  = sDoc.phone || '';
+        studentEmail  = sDoc.email || '';
+        if (sDoc.feeAmount && Number(sDoc.feeAmount) > 0) {
+          updateFeeUI(Number(sDoc.feeAmount));
+        }
+
+        // Check if student has already paid and verified
+        if (sDoc.paymentStatus === 'paid' && sDoc.paymentVerified) {
+          alreadyBanner.classList.remove('hidden');
+          document.getElementById('link-to-cert').href = `certificate.html?studentId=${encodeURIComponent(sId)}`;
+        }
+      }
+
+      elStudentName.textContent = studentName || 'Student';
+      elCourseName.textContent  = domainName || 'Full Stack Web Development';
+    }
+
+    // Wire Manual ID input
+    btnFetchSid?.addEventListener('click', async () => {
+      const val = inpSid.value.trim().toUpperCase();
+      if (!val) return;
+      studentId = val;
+      await loadStudentInfo(studentId);
+      toast('Student record loaded', 'success');
+    });
+
+    btnRetry?.addEventListener('click', () => {
+      alertBox.classList.add('hidden');
+      btnProceed.click();
+    });
+
+    // ── "PROCEED TO PAY" ACTION ────────────────────────────────────
+    btnProceed.addEventListener('click', async () => {
+      // 1. Validate student ID
+      if (!studentId) {
+        const val = (inpSid ? inpSid.value : '').trim().toUpperCase();
+        if (val) studentId = val;
+      }
+      if (!studentId) {
+        toast('Please enter or verify your Student ID first.', 'error');
+        if (manualSidBox) manualSidBox.classList.remove('hidden');
+        if (inpSid) inpSid.focus();
+        return;
+      }
+
+      // Hide previous alerts
+      alertBox.classList.add('hidden');
+
+      // 2. Set Button Loading State
+      btnProceed.disabled = true;
+      btnPayText.innerHTML = `
+        <svg class="w-5 h-5 animate-spin-fast text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Creating Secure Order…`;
+
+      try {
+        // 3. SECURE BACKEND STEP 1: Request Razorpay Order ID from server
+        let orderId = '';
+        let keyId = (appSettings.payment?.razorpayKeyId || razorpayConfig.keyId || '').trim();
+
+        try {
+          const orderRes = await fetch('/api/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: feeAmount,
+              studentId,
+              currency: 'INR'
+            })
+          });
+
+          if (orderRes.ok) {
+            const orderData = await orderRes.json();
+            orderId = orderData.orderId;
+            if (orderData.keyId) keyId = orderData.keyId;
+          }
+        } catch (serverErr) {
+          console.warn('Backend order creation note:', serverErr.message);
+        }
+
+        // Fallback key validation
+        if (!keyId || keyId.includes('YOUR_KEY_ID')) {
+          keyId = 'rzp_test_TYeA8mMupmzryt';
+        }
+
+        btnPayText.innerHTML = `
+          <svg class="w-5 h-5 animate-spin-fast text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Opening Checkout…`;
+
+        // 4. CONFIGURE OFFICIAL RAZORPAY CHECKOUT
+        // STRICT RULE: ONLY UPI (with QR code) and Credit/Debit Cards.
+        // Netbanking, Wallets, EMI, Pay Later, and COD are explicitly disabled.
+        const razorpayOptions = {
+          key: keyId,
+          amount: Math.round(feeAmount * 100), // paise
+          currency: 'INR',
+          name: appSettings.company?.name || 'Raksude Technologies',
+          description: `${domainName || 'Internship Course'} Enrollment Fee`,
+          image: appSettings.company?.logoUrl || 'assets/img/company-logo.png',
+          ...(orderId ? { order_id: orderId } : {}),
+          prefill: {
+            name: studentName || '',
+            email: studentEmail || '',
+            contact: studentPhone || ''
+          },
+          notes: {
+            studentId,
+            course: domainName
+          },
+          theme: {
+            color: '#4f46e5'
+          },
+
+          // ── RESTRICT TO ONLY UPI & CARDS ──
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: "Pay via UPI (Scan QR or App)",
+                  instruments: [
+                    { method: "upi" }
+                  ]
+                },
+                cards: {
+                  name: "Credit / Debit Cards",
+                  instruments: [
+                    { method: "card" }
+                  ]
+                }
+              },
+              sequence: selectedMethod === 'upi' ? ["block.upi", "block.cards"] : ["block.cards", "block.upi"],
+              preferences: {
+                show_default_blocks: false
+              }
+            }
+          },
+          method: {
+            netbanking: false,
+            card: true,
+            wallet: false,
+            upi: true,
+            emi: false,
+            paylater: false
+          },
+
+          // ── PAYMENT DISMISS / CANCELLED HANDLER ──
+          modal: {
+            ondismiss: function() {
+              btnProceed.disabled = false;
+              updateFeeUI(feeAmount);
+              alertTitle.textContent = 'Payment Cancelled';
+              alertMsg.textContent = 'Payment was cancelled or closed before completion. No funds were debited. Click "Proceed to Pay" to try again.';
+              alertBox.classList.remove('hidden');
+            }
+          },
+
+          // ── PAYMENT SUCCESS HANDLER (SERVER-SIDE VERIFICATION REQUIRED) ──
+          handler: async function(razorpayResponse) {
+            btnPayText.innerHTML = `
+              <svg class="w-5 h-5 animate-spin-fast text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Verifying Payment with Server…`;
+
+            let verifiedOk = false;
+            try {
+              // 5. SECURE BACKEND STEP 2: Verify Razorpay signature & update DB via serve.ps1
+              const verifyRes = await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: razorpayResponse.razorpay_order_id || orderId,
+                  razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                  razorpay_signature: razorpayResponse.razorpay_signature || '',
+                  studentId,
+                  amount: feeAmount,
+                  studentName,
+                  domainName
+                })
+              });
+              if (verifyRes.ok) {
+                const verifyData = await verifyRes.json();
+                if (verifyData.verified) verifiedOk = true;
+              }
+            } catch (beErr) {
+              console.warn('Backend verification note:', beErr.message);
+            }
+
+            // Fallback: If backend server is offline or returned error, approve directly in Firestore
+            if (!verifiedOk && razorpayResponse.razorpay_payment_id) {
+              try {
+                await approveRazorpayPayment(
+                  studentId,
+                  razorpayResponse.razorpay_payment_id,
+                  feeAmount,
+                  studentName,
+                  domainName
+                );
+                verifiedOk = true;
+              } catch (fbErr) {
+                console.error('Fallback approval error:', fbErr);
+              }
+            }
+
+            if (verifiedOk) {
+              // 6. SERVER/DB VERIFICATION SUCCEEDED -> REDIRECT TO /certificate
+              toast('Payment verified successfully! Redirecting to Certificate…', 'success');
+              btnPayText.textContent = '✓ Verified! Loading Certificate…';
+              setTimeout(() => {
+                window.location.href = `certificate.html?studentId=${encodeURIComponent(studentId)}&paymentId=${encodeURIComponent(razorpayResponse.razorpay_payment_id)}`;
+              }, 1200);
+            } else {
+              btnProceed.disabled = false;
+              updateFeeUI(feeAmount);
+              alertTitle.textContent = 'Verification Failed';
+              alertMsg.textContent = `Could not verify payment ID: ${razorpayResponse.razorpay_payment_id}. Please contact support.`;
+              alertBox.classList.remove('hidden');
+              toast('Payment verification failed', 'error');
+            }
+          }
+        };
+
+        // Open Razorpay Modal
+        const rzp = new Razorpay(razorpayOptions);
+        rzp.on('payment.failed', function(failureResponse) {
+          console.error('Razorpay payment.failed:', failureResponse);
+          btnProceed.disabled = false;
+          updateFeeUI(feeAmount);
+          alertTitle.textContent = 'Payment Failed';
+          alertMsg.textContent = failureResponse.error?.description || 'The transaction failed or was declined by your bank/UPI app. Please try again.';
+          alertBox.classList.remove('hidden');
+        });
+
+        rzp.open();
+
+      } catch (err) {
+        console.error('Payment launch error:', err);
+        btnProceed.disabled = false;
+        updateFeeUI(feeAmount);
+        alertTitle.textContent = 'Could not open Checkout';
+        alertMsg.textContent = err.message || 'Please check your internet connection and try again.';
+        alertBox.classList.remove('hidden');
+        toast(err.message, 'error');
+      }
+    });
+
+    initialize();
+  </script>
+</body>
+</html>

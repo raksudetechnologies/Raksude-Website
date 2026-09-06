@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payments · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, confirmDialog, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, badge, exportCSV, toast, fmtTs, money, debounce } from '../assets/js/utils.js';
+import { listPayments, reviewQrPayment } from '../assets/js/database.js';
+
+const content = document.getElementById('content');
+let payments = [];
+let fMethod = '', fStatus = '', fSearch = '';
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    payments = await listPayments();
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function filtered() {
+  let list = payments;
+  if (fMethod) list = list.filter(p => p.method === fMethod);
+  if (fStatus) list = list.filter(p => p.status === fStatus);
+  if (fSearch) {
+    const q = fSearch.toLowerCase();
+    list = list.filter(p =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.studentId || '').toLowerCase().includes(q) ||
+      (p.transactionId || '').toLowerCase().includes(q) ||
+      (p.razorpayPaymentId || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+function methodBadge(m) {
+  if (m === 'RAZORPAY') return '<span class="badge badge-blue">RAZORPAY</span>';
+  return '<span class="badge badge-gray">QR</span>';
+}
+
+function render() {
+  const all = payments;
+  const totalRevenue = all.filter(p => p.status === 'PAID' || p.status === 'APPROVED').reduce((s, p) => s + Number(p.amount || 0), 0);
+  const pendingList = all.filter(p => p.status === 'PENDING');
+  const pendingCount = pendingList.length;
+  const pendingSum = pendingList.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const qrCount = all.filter(p => p.method === 'QR').length;
+  const rpCount = all.filter(p => p.method === 'RAZORPAY').length;
+
+  const list = filtered();
+  const rows = list.map(p => {
+    const ref = p.method === 'RAZORPAY' ? (p.razorpayPaymentId || '—') : (p.transactionId || '—');
+    const isPending = p.status === 'PENDING';
+    const isRzpAuto = p.method === 'RAZORPAY' && !isPending;
+    let actionHtml = '';
+    if (isPending) {
+      actionHtml = `<div class="flex gap-1">
+        <button class="btn btn-success btn-sm" data-approve="${esc(p.id)}">Approve</button>
+        <button class="btn btn-danger btn-sm" data-reject="${esc(p.id)}">Reject</button>
+      </div>`;
+    } else if (isRzpAuto) {
+      actionHtml = '<span class="text-xs text-slate-400" title="Auto-verified via Razorpay">&#128274; Auto</span>';
+    } else {
+      actionHtml = '—';
+    }
+    return `<tr>
+      <td><span class="font-medium">${esc(p.name || '—')}</span><br><span class="text-xs text-slate-400">${esc(p.studentId || '')}</span></td>
+      <td>${esc(p.domainName || '—')}</td>
+      <td>${money(p.amount)}</td>
+      <td>${methodBadge(p.method)}</td>
+      <td class="text-xs font-mono">${esc(ref)}</td>
+      <td>${p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('en-IN') : '—'}</td>
+      <td>${fmtTs(p.createdAt)}</td>
+      <td>${badge(p.status)}</td>
+      <td class="whitespace-nowrap">${actionHtml}</td>
+    </tr>`;
+  }).join('');
+
+  const methodOpts = ['<option value="">All Methods</option>',
+    `<option value="QR" ${fMethod==='QR'?'selected':''}>QR</option>`,
+    `<option value="RAZORPAY" ${fMethod==='RAZORPAY'?'selected':''}>Razorpay</option>`
+  ].join('');
+  const statusOpts = ['<option value="">All Statuses</option>', ...['PENDING','APPROVED','REJECTED','PAID'].map(st =>
+    `<option value="${st}" ${fStatus===st?'selected':''}>${st}</option>`
+  )].join('');
+
+  content.innerHTML = `
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="card p-4"><p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Total Verified Revenue</p><p class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">${money(totalRevenue)}</p></div>
+      <div class="card p-4"><p class="text-xs uppercase tracking-wider text-indigo-600 font-bold">⚡ Razorpay Payments</p><p class="text-2xl font-extrabold text-indigo-600 mt-1">${rpCount}</p></div>
+      <div class="card p-4"><p class="text-xs uppercase tracking-wider text-slate-500 font-bold">Pending Review</p><p class="text-2xl font-extrabold text-amber-600 mt-1">${pendingCount}</p></div>
+      <div class="card p-4 flex flex-col justify-center"><a href="razorpay.html" class="btn btn-primary btn-sm text-xs flex items-center justify-center gap-1.5 font-bold shadow-md shadow-indigo-600/20">🔐 Razorpay Gateway Setup &rarr;</a></div>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <span>Payment Records</span>
+        <span class="badge badge-blue text-xs font-mono">Razorpay Gateway</span>
+      </h2>
+      <button id="export-btn" class="btn btn-outline">Export CSV</button>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input class="input w-auto min-w-[200px]" id="f-search" placeholder="Search name, student ID, txn..." value="${esc(fSearch)}">
+      <select id="f-method" class="input w-auto">${methodOpts}</select>
+      <select id="f-status" class="input w-auto">${statusOpts}</select>
+    </div>
+    <div class="card overflow-x-auto">
+      ${list.length ? `<table class="table">
+        <thead><tr><th>Student</th><th>Domain</th><th>Amount</th><th>Method</th><th>Reference</th><th>Pay Date</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No payments found.')}
+    </div>`;
+
+  const searchInput = document.getElementById('f-search');
+  searchInput.oninput = debounce(e => { fSearch = e.target.value; render(); }, 250);
+  document.getElementById('f-method').onchange = e => { fMethod = e.target.value; render(); };
+  document.getElementById('f-status').onchange = e => { fStatus = e.target.value; render(); };
+
+  document.getElementById('export-btn').onclick = () => {
+    if (!list.length) return toast('No data to export', 'error');
+    exportCSV('payments.csv', list.map(p => ({
+      StudentID: p.studentId, Name: p.name, Domain: p.domainName,
+      Amount: p.amount, Method: p.method, Reference: p.transactionId || p.razorpayPaymentId || '',
+      PaymentDate: p.paymentDate || '', CreatedAt: fmtTs(p.createdAt), Status: p.status
+    })));
+  };
+
+  content.querySelectorAll('[data-approve]').forEach(b => b.onclick = async () => {
+    const p = payments.find(p => p.id === b.dataset.approve);
+    const mName = p.method === 'RAZORPAY' ? 'Razorpay' : 'QR';
+    const ok = await confirmDialog(`Approve ${mName} payment of ${money(p.amount)} from ${p.name}?`, { danger: false });
+    if (!ok) return;
+    b.disabled = true;
+    try {
+      await reviewQrPayment(p, true);
+      toast('Payment approved', 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); b.disabled = false; }
+  });
+
+  content.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => {
+    const p = payments.find(p => p.id === b.dataset.reject);
+    const mName = p.method === 'RAZORPAY' ? 'Razorpay' : 'QR';
+    const ok = await confirmDialog(`Reject ${mName} payment of ${money(p.amount)} from ${p.name}?`, { danger: true });
+    if (!ok) return;
+    b.disabled = true;
+    try {
+      await reviewQrPayment(p, false);
+      toast('Payment rejected', 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); b.disabled = false; }
+  });
+}
+
+const { user, settings } = await initAdminPage('payments');
+await load();
+</script>
+</body>
+</html>

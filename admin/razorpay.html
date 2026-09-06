@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Razorpay Secure Setup · Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100 antialiased">
+  <div id="content" class="p-4 md:p-8 max-w-4xl mx-auto"></div>
+
+  <script type="module">
+    import { initAdminPage } from '../assets/js/admin.js';
+    import { esc, toast } from '../assets/js/utils.js';
+    import { getSecureConfig, saveSecureConfig, getSettings, saveSettings } from '../assets/js/database.js';
+
+    const { user, settings } = await initAdminPage('razorpay');
+    const content = document.getElementById('content');
+    let secureData = await getSecureConfig('razorpay');
+    let appSettings = settings;
+
+    render();
+
+    function render() {
+      const mode = secureData.mode || (appSettings.payment?.razorpayKeyId?.startsWith('rzp_live_') ? 'live' : 'test');
+      const isEnabled = appSettings.payment?.razorpayEnabled ?? true;
+      const keyId = secureData.keyId || appSettings.payment?.razorpayKeyId || '';
+      const secretKey = secureData.secretKey || '';
+      const webhookSecret = secureData.webhookSecret || '';
+      const paymentLinkUrl = secureData.paymentLinkUrl || '';
+      const functionsUrl = secureData.functionsUrl || appSettings.payment?.razorpayFunctionsUrl || '';
+      const feeAmount = appSettings.payment?.amount || 199;
+      const updatedAt = secureData.updatedAt ? new Date(secureData.updatedAt).toLocaleString('en-IN') : 'Recently';
+
+      content.innerHTML = `
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${mode === 'live' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700' : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700'}">
+              <span class="w-1.5 h-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span>
+              ${mode.toUpperCase()} MODE
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${isEnabled ? 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700' : 'bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-600'}">
+              ${isEnabled ? '✓ Gateway Active' : 'Gateway Disabled'}
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-700">
+              ⚡ Instant Auto-Approval Active
+            </span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <i data-lucide="shield" class="w-7 h-7 text-indigo-600 dark:text-indigo-400"></i> Razorpay Gateway Setup
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Connect your Razorpay account to collect payments with instant automated certificate unlock and zero manual intervention.
+          </p>
+        </div>
+
+        <!-- ══ BACKEND SERVER STATUS PANEL ══ -->
+        <div class="card p-5 mb-6" id="backend-status-panel">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+              <i data-lucide="server" class="w-4 h-4 text-indigo-600"></i> Local Backend Server (serve.ps1)
+            </h2>
+            <div class="flex gap-2">
+              <button id="btn-check-backend" class="btn btn-outline btn-sm text-xs flex items-center gap-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Check Status
+              </button>
+              <button id="btn-reload-config" class="btn btn-sm text-xs flex items-center gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700" title="Hot-reload Razorpay keys from Firestore into the running server">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Sync Keys to Backend
+              </button>
+            </div>
+          </div>
+          <div id="backend-status-content">
+            <div class="flex items-center gap-2 text-sm text-slate-400">
+              <div class="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 animate-pulse"></div>
+              <span>Checking backend connection…</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 mt-3">
+            The backend server must be running via <code class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-slate-700 dark:text-slate-300">powershell -ExecutionPolicy Bypass -File serve.ps1</code>
+          </p>
+        </div>
+
+        <div class="mb-6 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 flex items-start gap-3">
+          <div class="p-2 rounded-xl bg-indigo-600 text-white shrink-0 shadow-md shadow-indigo-600/30">
+            <i data-lucide="zap" class="w-5 h-5"></i>
+          </div>
+          <div class="text-sm text-slate-700 dark:text-slate-200">
+            <p class="font-bold text-slate-900 dark:text-white mb-0.5">Instant Pay & Auto-Approval Workflow</p>
+            <p class="text-xs text-slate-600 dark:text-slate-300">
+              When a student pays via Razorpay (UPI, Card, Net Banking), payment verification is <strong>automatic</strong>. 
+              The student is marked <code class="px-1 py-0.5 rounded bg-white dark:bg-slate-800 font-mono text-emerald-600 font-bold">PAID</code> instantly, an approved payment record is logged, and their certificate unlocks automatically.
+            </p>
+          </div>
+        </div>
+
+        <form id="rzp-form" class="space-y-5">
+          <!-- Status, Mode & Fee -->
+          <div class="card p-5">
+            <h2 class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2 text-base">
+              <i data-lucide="power" class="w-4 h-4 text-indigo-600"></i> Gateway Status & Pricing
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <label class="flex items-start gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 transition-colors cursor-pointer bg-white/50 dark:bg-slate-900/50 sm:col-span-1">
+                <input type="checkbox" id="f-enabled" ${isEnabled ? 'checked' : ''} class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                <div>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-white">Enable Razorpay</p>
+                  <p class="text-xs text-slate-500 mt-0.5">Allow students to pay via Razorpay</p>
+                </div>
+              </label>
+
+              <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 sm:col-span-1">
+                <p class="text-sm font-semibold text-slate-900 dark:text-white mb-2">Environment Mode</p>
+                <div class="flex gap-2">
+                  <button type="button" id="btn-test" class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all ${mode === 'test' ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">Test</button>
+                  <button type="button" id="btn-live" class="flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all ${mode === 'live' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}">Live</button>
+                  <input type="hidden" id="f-mode" value="${esc(mode)}">
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 sm:col-span-1">
+                <label for="f-amount" class="text-sm font-semibold text-slate-900 dark:text-white block mb-1">Fee Amount (₹)</label>
+                <input id="f-amount" type="number" min="1" step="1" value="${esc(feeAmount)}" class="input font-mono text-sm w-full font-bold">
+                <p class="text-[10px] text-slate-400 mt-1">Default fee shown on checkout</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Keys -->
+          <div class="card p-5">
+            <h2 class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2 text-base">
+              <i data-lucide="key" class="w-4 h-4 text-indigo-600"></i> Razorpay API Credentials
+            </h2>
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="label" for="f-key-id">Razorpay Key ID <span class="text-rose-500">*</span></label>
+                  <span class="text-xs font-mono text-slate-400">rzp_test_... or rzp_live_...</span>
+                </div>
+                <input id="f-key-id" type="text" placeholder="rzp_test_XXXXXXXXXXXXXXXXXX" value="${esc(keyId)}" class="input font-mono text-xs sm:text-sm" required>
+                <p class="text-xs text-slate-500 mt-1">Razorpay Dashboard → Settings → API Keys → Key ID</p>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="label" for="f-secret-key">Secret Key <span class="text-rose-500 font-bold">*Sensitive*</span></label>
+                  <button type="button" id="btn-show-secret" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i> <span id="show-secret-text">Show</span>
+                  </button>
+                </div>
+                <input id="f-secret-key" type="password" placeholder="Your Razorpay Secret Key..." value="${esc(secretKey)}" class="input font-mono text-xs sm:text-sm">
+                <p class="text-xs text-rose-500 dark:text-rose-400 mt-1">🔒 Stored in admin-only vault. Never accessible to public or students.</p>
+              </div>
+              <div>
+                <label class="label mb-1.5" for="f-webhook">Webhook Secret <span class="text-slate-400 font-normal">(Optional)</span></label>
+                <input id="f-webhook" type="password" placeholder="Optional webhook secret for server verification..." value="${esc(webhookSecret)}" class="input font-mono text-xs sm:text-sm">
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Save & Quick Test Row -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+            <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Last saved: ${updatedAt}
+            </p>
+            <div class="flex flex-wrap gap-2.5 w-full sm:w-auto">
+              <a href="../razorpay.html?studentId=INT-2026-0001" target="_blank" class="btn btn-outline btn-sm flex items-center gap-1.5 text-xs">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Test Checkout (INT-2026-0001)
+              </a>
+              <button type="submit" class="btn btn-primary px-6 py-2.5 flex items-center gap-2 shadow-lg shadow-indigo-600/20 w-full sm:w-auto font-bold">
+                <i data-lucide="save" class="w-4 h-4"></i> Save & Sync Razorpay
+              </button>
+            </div>
+          </div>
+        </form>
+      `;
+
+      lucide.createIcons();
+      attachEvents();
+      attachBackendPanel();  // auto-check backend status on load
+    }
+
+    function attachEvents() {
+      // Secret show/hide
+      const secretInput = document.getElementById('f-secret-key');
+      const showBtn = document.getElementById('btn-show-secret');
+      const showText = document.getElementById('show-secret-text');
+      showBtn?.addEventListener('click', () => {
+        const isPass = secretInput.type === 'password';
+        secretInput.type = isPass ? 'text' : 'password';
+        showText.textContent = isPass ? 'Hide' : 'Show';
+      });
+
+      // Mode toggles
+      const testBtn = document.getElementById('btn-test');
+      const liveBtn = document.getElementById('btn-live');
+      const modeField = document.getElementById('f-mode');
+      testBtn?.addEventListener('click', () => {
+        modeField.value = 'test';
+        testBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all bg-amber-500 text-white shadow-md';
+        liveBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200';
+      });
+      liveBtn?.addEventListener('click', () => {
+        modeField.value = 'live';
+        liveBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all bg-emerald-600 text-white shadow-md';
+        testBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200';
+      });
+
+      // Auto-toggle mode on key input
+      document.getElementById('f-key-id')?.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val.startsWith('rzp_live_') && modeField.value !== 'live') {
+          liveBtn?.click();
+        } else if (val.startsWith('rzp_test_') && modeField.value !== 'test') {
+          testBtn?.click();
+        }
+      });
+
+      // Save
+      document.getElementById('rzp-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.submitter || e.target.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving & Syncing...'; }
+
+        try {
+          const payload = {
+            mode: document.getElementById('f-mode').value,
+            keyId: document.getElementById('f-key-id').value.trim(),
+            secretKey: document.getElementById('f-secret-key').value.trim(),
+            webhookSecret: document.getElementById('f-webhook').value.trim(),
+          };
+          const isEnabled = document.getElementById('f-enabled').checked;
+          const feeAmount = Number(document.getElementById('f-amount').value) || 199;
+
+          secureData = await saveSecureConfig('razorpay', payload);
+          await saveSettings({
+            payment: {
+              ...appSettings.payment,
+              amount: feeAmount,
+              razorpayEnabled: isEnabled,
+              razorpayKeyId: payload.keyId,
+            }
+          });
+
+          // Hot-sync directly to local backend server
+          try {
+            await fetch('http://localhost:8080/api/save-config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                keyId: payload.keyId,
+                keySecret: payload.secretKey,
+                webhookSecret: payload.webhookSecret,
+                currency: 'INR',
+                companyName: appSettings.company?.name || 'Raksude Technologies'
+              })
+            });
+          } catch (syncErr) {
+            console.log('Backend sync note:', syncErr.message);
+          }
+
+          appSettings = await getSettings(true);
+          toast('Razorpay credentials saved and synced successfully!', 'success');
+          render();
+        } catch (err) {
+          console.error(err);
+          toast('Save failed: ' + (err.message || 'Permission denied'), 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Save & Sync Razorpay'; }
+        }
+      });
+    }
+    // ── Backend status checker & hot-reload
+    async function attachBackendPanel() {
+      const statusEl = document.getElementById('backend-status-content');
+      const checkBtn = document.getElementById('btn-check-backend');
+      const reloadBtn = document.getElementById('btn-reload-config');
+
+      async function checkBackend() {
+        if (!statusEl) return;
+        statusEl.innerHTML = `<div class="flex items-center gap-2 text-sm text-slate-400"><div class="w-3 h-3 rounded-full bg-slate-300 animate-pulse"></div><span>Connecting to backend…</span></div>`;
+        try {
+          const res = await fetch('http://localhost:8080/api/status', { method: 'GET', signal: AbortSignal.timeout(3500) });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const d = await res.json();
+          const modeColor = d.keyMode === 'live' ? 'text-emerald-600 dark:text-emerald-400' : d.keyMode === 'test' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-500';
+          const secretStatus = d.hasSecret
+            ? '<span class="badge badge-green text-[10px]">✓ Secret Loaded</span>'
+            : '<span class="badge badge-amber text-[10px]">⚠ Secret Missing</span>';
+          const webhookStatus = d.hasWebhook
+            ? '<span class="badge badge-green text-[10px]">✓ Webhook Secret</span>'
+            : '<span class="badge badge-gray text-[10px]">No Webhook Secret</span>';
+          statusEl.innerHTML = `
+            <div class="flex items-start gap-3">
+              <div class="w-3 h-3 rounded-full bg-emerald-500 mt-1 shrink-0 animate-pulse"></div>
+              <div class="space-y-2 w-full">
+                <p class="text-sm font-bold text-emerald-700 dark:text-emerald-300">🟢 Backend Online — serve.ps1 v${esc(d.serverVersion || '2.0')} running on port 8080</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div><span class="text-slate-400 block">Key ID (active)</span><span class="font-mono font-bold ${modeColor}">${esc(d.keyId ? d.keyId.substring(0,20) + '...' : '—')}</span></div>
+                  <div><span class="text-slate-400 block">Mode</span><span class="font-bold ${modeColor} uppercase">${esc(d.keyMode)}</span></div>
+                  <div><span class="text-slate-400 block">Config Source</span><span class="font-semibold text-slate-700 dark:text-slate-300">${esc(d.configSource || '—')}</span></div>
+                  <div><span class="text-slate-400 block">Secret</span>${secretStatus}</div>
+                  <div><span class="text-slate-400 block">Webhook</span>${webhookStatus}</div>
+                  <div><span class="text-slate-400 block">Uptime</span><span class="font-semibold text-slate-700 dark:text-slate-300">${d.uptime} min</span></div>
+                </div>
+              </div>
+            </div>`;
+        } catch(err) {
+          statusEl.innerHTML = `
+            <div class="flex items-start gap-3">
+              <div class="w-3 h-3 rounded-full bg-rose-500 mt-1 shrink-0"></div>
+              <div>
+                <p class="text-sm font-bold text-rose-600 dark:text-rose-400">🔴 Backend Offline</p>
+                <p class="text-xs text-slate-500 mt-1">serve.ps1 is not running or unreachable on port 8080.</p>
+                <div class="mt-3 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 font-mono text-xs text-slate-700 dark:text-slate-300">
+                  powershell -ExecutionPolicy Bypass -File serve.ps1
+                </div>
+              </div>
+            </div>`;
+        }
+      }
+
+      // Auto-check on load
+      checkBackend();
+
+      checkBtn?.addEventListener('click', checkBackend);
+
+      reloadBtn?.addEventListener('click', async () => {
+        reloadBtn.disabled = true;
+        reloadBtn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Syncing…';
+        lucide.createIcons();
+        try {
+          const res = await fetch('http://localhost:8080/api/reload-config', { method: 'POST', signal: AbortSignal.timeout(4000) });
+          const d = await res.json();
+          if (d.reloaded) {
+            toast(`Keys synced to backend! Mode: ${d.keyMode} | Source: ${d.configSource}`, 'success');
+          } else {
+            toast('Reload failed: ' + (d.error || 'Unknown error'), 'error');
+          }
+          await checkBackend();
+        } catch(e) {
+          toast('Backend offline — start serve.ps1 first', 'error');
+        }
+        reloadBtn.disabled = false;
+        reloadBtn.innerHTML = '<i data-lucide="zap" class="w-3.5 h-3.5"></i> Sync Keys to Backend';
+        lucide.createIcons();
+      });
+    }
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Internship Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased">
+
+  <div id="nav"></div>
+
+  <!-- Hero Section -->
+  <section id="hero" class="relative overflow-hidden bg-gradient-to-br from-indigo-950 via-blue-900 to-indigo-900 text-white py-16 sm:py-24 md:py-32">
+    <!-- Animated background gradient orbs -->
+    <div class="absolute top-0 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob pointer-events-none"></div>
+    <div class="absolute top-1/3 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-blue-400 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-2000 pointer-events-none"></div>
+    <div class="absolute -bottom-20 left-1/2 w-72 sm:w-96 h-72 sm:h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-4000 pointer-events-none"></div>
+    
+    <!-- Subtle grid texture -->
+    <div class="absolute inset-0 bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none"></div>
+    
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 text-center" data-aos="fade-up" data-aos-duration="900">
+      
+      <!-- Top Admission Pill -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6 shadow-md text-xs sm:text-sm font-medium">
+        <span class="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Admissions Open for 2026 Batch</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 id="heroTitle" class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-5 leading-tight drop-shadow-sm">
+        Launch Your Career with Real-World Internships
+      </h1>
+
+      <!-- Subtitle -->
+      <p id="heroSubtitle" class="text-base sm:text-xl md:text-2xl text-indigo-100 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
+        Gain practical project experience with our structured 30-day online internship program across top tech domains.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row gap-3.5 sm:gap-5 justify-center items-center max-w-md sm:max-w-none mx-auto mb-10">
+        <a id="heroCta" href="apply.html" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white text-indigo-900 font-extrabold text-base shadow-xl shadow-indigo-950/30 hover:bg-indigo-50 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          <i data-lucide="sparkles" class="w-5 h-5 text-indigo-600"></i>
+          <span>Apply for Internship</span>
+        </a>
+        <a href="#domains-section" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white/10 backdrop-blur-md text-white border border-white/25 font-semibold text-base hover:bg-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          <i data-lucide="compass" class="w-5 h-5"></i>
+          <span>Explore Domains</span>
+        </a>
+      </div>
+
+      <!-- Trust Badges Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/15 max-w-4xl mx-auto text-left">
+        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+          <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+          <div>
+            <p class="text-xs font-bold leading-tight">MSME Registered</p>
+            <p class="text-[10px] text-indigo-200">Govt. Recognised</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+          <i data-lucide="award" class="w-5 h-5 text-amber-400 shrink-0"></i>
+          <div>
+            <p class="text-xs font-bold leading-tight">QR Verified Cert</p>
+            <p class="text-[10px] text-indigo-200">Shareable Online</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+          <i data-lucide="clock" class="w-5 h-5 text-blue-400 shrink-0"></i>
+          <div>
+            <p class="text-xs font-bold leading-tight">30-Day Plan</p>
+            <p class="text-[10px] text-indigo-200">Self-Paced Tasks</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+          <i data-lucide="laptop" class="w-5 h-5 text-purple-400 shrink-0"></i>
+          <div>
+            <p class="text-xs font-bold leading-tight">100% Online</p>
+            <p class="text-[10px] text-indigo-200">LMS Dashboard</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Key Stats Row -->
+  <section class="py-8 bg-indigo-900/40 dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 shadow-sm border border-slate-100 dark:border-slate-700/50">
+          <p class="text-2xl sm:text-4xl font-extrabold text-indigo-600 dark:text-indigo-400">1,500+</p>
+          <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">Students Enrolled</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 shadow-sm border border-slate-100 dark:border-slate-700/50">
+          <p class="text-2xl sm:text-4xl font-extrabold text-blue-600 dark:text-blue-400">25+</p>
+          <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">Tech Domains</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 shadow-sm border border-slate-100 dark:border-slate-700/50">
+          <p class="text-2xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400">98%</p>
+          <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">Completion Rate</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 shadow-sm border border-slate-100 dark:border-slate-700/50">
+          <p class="text-2xl sm:text-4xl font-extrabold text-amber-500">4.9 ★</p>
+          <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">Student Rating</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works (Visual 3-Step Journey) -->
+  <section class="py-16 sm:py-20 max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-12" data-aos="fade-up">
+      <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">Simple Process</span>
+      <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-3">How Your Internship Works</h2>
+      <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 max-w-xl mx-auto">From application to certified achievement in three straightforward steps.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 relative">
+      <!-- Step 1 -->
+      <div class="card p-6 sm:p-8 relative text-center group hover:border-indigo-400 transition-all" data-aos="fade-up" data-aos-delay="0">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform">
+          1
+        </div>
+        <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2">Apply in 1 Minute</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-300">Choose your domain, fill the easy online form, and receive instant LMS login credentials.</p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="card p-6 sm:p-8 relative text-center group hover:border-indigo-400 transition-all" data-aos="fade-up" data-aos-delay="150">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+          2
+        </div>
+        <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2">Build & Submit Tasks</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-300">Work through weekly hands-on project milestones, push code to GitHub, and submit in LMS.</p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="card p-6 sm:p-8 relative text-center group hover:border-indigo-400 transition-all" data-aos="fade-up" data-aos-delay="300">
+        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-xl shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
+          3
+        </div>
+        <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2">Get Certified</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-300">Get tasks approved by mentors, unlock your official QR-verified certificate, and boost your resume.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Available Domains (Search & Filter enabled) -->
+  <section id="domains-section" class="py-16 sm:py-20 bg-slate-100/70 dark:bg-slate-900/60 border-y border-slate-200 dark:border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      
+      <div class="text-center mb-8" data-aos="fade-up">
+        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">Explore Tracks</span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-3">Available Internship Domains</h2>
+        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 max-w-xl mx-auto">Choose from industry-ready internship domains designed for practical skill mastery.</p>
+      </div>
+
+      <!-- Search & Filter Controls (Mobile Optimized) -->
+      <div class="max-w-xl mx-auto mb-10" data-aos="fade-up">
+        <div class="relative">
+          <i data-lucide="search" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="domainSearch" placeholder="Search domains (e.g. Cyber, Web, Python)..." class="w-full pl-11 pr-4 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm transition">
+        </div>
+      </div>
+
+      <!-- Domains Grid -->
+      <div id="domainsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-full text-center py-12"><div class="spinner"></div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- About / Mission-Vision -->
+  <section class="py-16 sm:py-20 max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-12" data-aos="fade-up">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">About the Program</h2>
+      <p id="aboutMission" class="mt-3 text-slate-600 dark:text-slate-300 max-w-2xl mx-auto text-sm sm:text-base"></p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="card p-6 sm:p-8 text-center" data-aos="fade-up" data-aos-delay="100">
+        <div class="w-12 h-12 mx-auto mb-4 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><i data-lucide="target" class="w-6 h-6"></i></div>
+        <h3 class="text-lg font-bold mb-2">Our Mission</h3>
+        <p id="missionText" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed"></p>
+      </div>
+      <div class="card p-6 sm:p-8 text-center" data-aos="fade-up" data-aos-delay="200">
+        <div class="w-12 h-12 mx-auto mb-4 rounded-xl bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-400"><i data-lucide="eye" class="w-6 h-6"></i></div>
+        <h3 class="text-lg font-bold mb-2">Our Vision</h3>
+        <p id="visionText" class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed"></p>
+      </div>
+      <div class="card p-6 sm:p-8 text-center" data-aos="fade-up" data-aos-delay="300">
+        <div class="w-12 h-12 mx-auto mb-4 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400"><i data-lucide="heart" class="w-6 h-6"></i></div>
+        <h3 class="text-lg font-bold mb-2">Core Values</h3>
+        <p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">Integrity, hands-on learning, inclusivity, and direct mentor guidance drive everything we do.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Payment & Certificate Info -->
+  <section class="py-12 sm:py-16 bg-slate-100/70 dark:bg-slate-900/60 border-y border-slate-200 dark:border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="card p-6 sm:p-8" data-aos="fade-right">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 flex items-center justify-center text-indigo-600 shrink-0"><i data-lucide="credit-card" class="w-5 h-5"></i></div>
+            <h3 class="text-xl font-bold">Affordable Registration</h3>
+          </div>
+          <p id="paymentInfo" class="text-slate-600 dark:text-slate-300 text-sm mb-4 leading-relaxed">Minimal registration fee with flexible payment options including UPI and Razorpay.</p>
+          <a href="apply.html" class="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold text-sm hover:gap-2.5 transition-all">Apply Now &rarr;</a>
+        </div>
+        <div class="card p-6 sm:p-8" data-aos="fade-left">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-600 shrink-0"><i data-lucide="file-check" class="w-5 h-5"></i></div>
+            <h3 class="text-xl font-bold">Verifiable Certificate</h3>
+          </div>
+          <p class="text-slate-600 dark:text-slate-300 text-sm mb-4 leading-relaxed">Receive a verifiable certificate with unique QR code that employers can check online.</p>
+          <a href="verify-certificate.html" class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-sm hover:gap-2.5 transition-all">Verify a Certificate &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive FAQ Accordion -->
+  <section class="py-16 sm:py-20 max-w-4xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-10" data-aos="fade-up">
+      <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">Got Questions?</span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-3">Frequently Asked Questions</h2>
+    </div>
+    
+    <div class="space-y-3" id="faqAccordion">
+      <div class="card p-5 cursor-pointer select-none faq-item" data-faq="1">
+        <div class="flex items-center justify-between gap-3">
+          <h4 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">How does the 30-day internship schedule work?</h4>
+          <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 shrink-0 transition-transform faq-icon"></i>
+        </div>
+        <div class="faq-content hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          The program is 100% online and self-paced. Each week has practical tasks and milestones. You work on your code, push it to GitHub, and submit your link on the LMS dashboard.
+        </div>
+      </div>
+
+      <div class="card p-5 cursor-pointer select-none faq-item" data-faq="2">
+        <div class="flex items-center justify-between gap-3">
+          <h4 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Is the certificate verifiable online?</h4>
+          <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 shrink-0 transition-transform faq-icon"></i>
+        </div>
+        <div class="faq-content hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Yes! Every certificate includes a unique verification ID and a scannable QR code that leads to our live public verification page. Anyone can instantly verify authenticity.
+        </div>
+      </div>
+
+      <div class="card p-5 cursor-pointer select-none faq-item" data-faq="3">
+        <div class="flex items-center justify-between gap-3">
+          <h4 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">Can beginners and college students apply?</h4>
+          <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400 shrink-0 transition-transform faq-icon"></i>
+        </div>
+        <div class="faq-content hidden mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Absolutely! All tracks are beginner-friendly with step-by-step guidance. Students from any year or branch can join.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="py-16 sm:py-20 bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-950 text-white text-center relative overflow-hidden">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10" data-aos="zoom-in">
+      <h2 class="text-2xl sm:text-4xl font-extrabold mb-4">Ready to Start Your Journey?</h2>
+      <p class="text-indigo-100 mb-8 text-sm sm:text-base max-w-xl mx-auto">Join thousands of students building real projects, earning verified certificates, and accelerating their careers.</p>
+      <a href="apply.html" class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white text-indigo-900 font-extrabold text-base shadow-2xl shadow-indigo-950/40 hover:bg-indigo-50 hover:scale-105 active:scale-95 transition-all">
+        <span>Apply for Internship</span>
+        <i data-lucide="arrow-right" class="w-5 h-5 text-indigo-600"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- Floating Mobile Quick Action Bar (Thumb-Friendly on Mobile) -->
+  <div class="fixed bottom-3 inset-x-4 z-40 sm:hidden flex items-center gap-2.5 p-2 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl shadow-black/40">
+    <a href="apply.html" class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white text-center font-bold text-sm shadow-md flex items-center justify-center gap-2">
+      <i data-lucide="sparkles" class="w-4 h-4"></i>
+      <span>Apply Now</span>
+    </a>
+    <a href="lms.html" class="py-3 px-4 rounded-xl bg-white/10 text-white font-medium text-xs border border-white/10 flex items-center justify-center gap-1.5">
+      <i data-lucide="log-in" class="w-4 h-4"></i>
+      <span>LMS</span>
+    </a>
+  </div>
+
+  <div id="footer"></div>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script type="module">
+    import { esc } from './assets/js/utils.js';
+    import { listDomains } from './assets/js/database.js';
+    import { applyPublicChrome } from './assets/js/settings.js';
+
+    let allDomains = [];
+
+    function renderDomains(domains) {
+      const grid = document.getElementById('domainsGrid');
+      if (!domains || domains.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-slate-500">No domains match your search. Try another keyword.</p></div>';
+        return;
+      }
+
+      grid.innerHTML = domains.map(d => {
+        const durDays = Number(d.duration) || 30;
+        const durWeeks = d.weeks || Math.max(1, Math.round(durDays / 7));
+        return `
+        <div class="card p-6 flex flex-col justify-between hover:shadow-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all group" data-aos="fade-up">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                <i data-lucide="code-2" class="w-6 h-6"></i>
+              </div>
+              <span class="text-[11px] font-bold tracking-wide uppercase px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800">
+                ${durDays} Days (${durWeeks}W)
+              </span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${esc(d.name)}</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-300 mb-4 line-clamp-3 leading-relaxed">${esc(d.shortDescription || d.description || '')}</p>
+          </div>
+          
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <div class="flex items-center justify-between mb-3 text-xs text-slate-500 dark:text-slate-400">
+              <span class="flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Project-based</span>
+              <span class="flex items-center gap-1"><i data-lucide="award" class="w-3.5 h-3.5 text-amber-500"></i> Certificate</span>
+            </div>
+            <a href="apply.html?domain=${encodeURIComponent(d.id)}" class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all">
+              <span>Apply Now</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+          </div>
+        </div>
+      `;}).join('');
+
+      lucide.createIcons();
+    }
+
+    // Setup FAQ Accordion
+    document.querySelectorAll('.faq-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const content = item.querySelector('.faq-content');
+        const icon = item.querySelector('.faq-icon');
+        const isOpen = !content.classList.contains('hidden');
+        
+        // Close other FAQs
+        document.querySelectorAll('.faq-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.faq-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+
+        if (!isOpen) {
+          content.classList.remove('hidden');
+          icon.style.transform = 'rotate(180deg)';
+        }
+      });
+    });
+
+    (async () => {
+      AOS.init({ duration: 600, once: true });
+      lucide.createIcons();
+
+      try {
+        const s = await applyPublicChrome('home');
+        if (s) {
+          if (s.home?.heroTitle) document.getElementById('heroTitle').textContent = s.home.heroTitle;
+          if (s.home?.heroSubtitle) document.getElementById('heroSubtitle').textContent = s.home.heroSubtitle;
+          if (s.home?.ctaText) {
+            const cta = document.getElementById('heroCta');
+            if (cta) cta.querySelector('span').textContent = s.home.ctaText;
+          }
+          if (s.about?.mission) {
+            const am = document.getElementById('aboutMission');
+            if (am) am.textContent = s.about.mission;
+            const mt = document.getElementById('missionText');
+            if (mt) mt.textContent = s.about.mission;
+          }
+          if (s.about?.vision) {
+            const vt = document.getElementById('visionText');
+            if (vt) vt.textContent = s.about.vision;
+          }
+          if (s.payment?.amount) {
+            const amt = typeof s.payment.amount === 'number' ? `₹${s.payment.amount.toLocaleString('en-IN')}` : s.payment.amount;
+            const pi = document.getElementById('paymentInfo');
+            if (pi) pi.textContent = `Registration fee: ${amt}. Flexible payment options including UPI and Razorpay.`;
+          }
+        }
+      } catch (e) { console.error(e); }
+
+      // Load domains with real-time search
+      try {
+        allDomains = await listDomains({ includeInactive: false });
+        renderDomains(allDomains);
+
+        const searchInput = document.getElementById('domainSearch');
+        if (searchInput) {
+          searchInput.addEventListener('input', (e) => {
+            const q = e.target.value.trim().toLowerCase();
+            if (!q) {
+              renderDomains(allDomains);
+              return;
+            }
+            const filtered = allDomains.filter(d => 
+              (d.name && d.name.toLowerCase().includes(q)) ||
+              (d.shortDescription && d.shortDescription.toLowerCase().includes(q)) ||
+              (d.description && d.description.toLowerCase().includes(q))
+            );
+            renderDomains(filtered);
+          });
+        }
+      } catch (e) {
+        document.getElementById('domainsGrid').innerHTML = '<p class="col-span-full text-center text-red-500 py-8">Failed to load domains. Please try again later.</p>';
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>

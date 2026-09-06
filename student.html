@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - LMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
+
+  <!-- Fatal error container -->
+  <div id="fatal"></div>
+
+  <!-- Loading screen -->
+  <div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900">
+    <div class="text-center">
+      <div class="loading w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Account not linked message (hidden by default) -->
+  <div id="not-linked" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900 p-4">
+    <div class="card max-w-md w-full text-center p-8">
+      <i data-lucide="circle-alert" class="w-16 h-16 text-amber-500 mx-auto mb-4"></i>
+      <h2 class="text-2xl font-bold mb-2">Account Not Linked</h2>
+      <p class="text-gray-500 dark:text-gray-400 mb-6">Your account exists but is not linked to any student record. Please contact your administrator.</p>
+      <button id="btn-notlinked-logout" class="btn btn-primary w-full">Logout</button>
+    </div>
+  </div>
+
+  <!-- LMS Chrome (topbar + sidebar rendered here by renderLmsChrome) -->
+  <div id="lms-chrome"></div>
+
+  <!-- Main content area (renderLmsChrome moves this into the padded area) -->
+  <div id="lms-content">
+
+    <!-- ===================== DASHBOARD VIEW ===================== -->
+    <section id="view-dashboard" class="space-y-6 hidden">
+      <!-- Profile Summary Card -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <i data-lucide="user" class="w-5 h-5 text-indigo-600"></i> Profile Summary
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="profile-fields">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Internship Timeline Card -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <i data-lucide="calendar-range" class="w-5 h-5 text-indigo-600"></i> Internship Timeline
+        </h2>
+        <div id="timeline-content" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <!-- filled by JS -->
+        </div>
+        <div class="mt-4">
+          <div class="flex justify-between text-sm mb-1">
+            <span>Progress</span>
+            <span id="timeline-progress-text">0%</span>
+          </div>
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+            <div id="timeline-progress-bar" class="bg-indigo-600 h-3 rounded-full transition-all duration-500" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Badges -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-5 h-5 text-indigo-600"></i> Status Overview
+        </h2>
+        <div class="flex flex-wrap gap-4" id="status-badges">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Task Progress Card -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <i data-lucide="clipboard-check" class="w-5 h-5 text-indigo-600"></i> Task Progress
+        </h2>
+        <div id="task-progress-content">
+          <p class="text-gray-500">Loading...</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <i data-lucide="zap" class="w-5 h-5 text-indigo-600"></i> Quick Actions
+        </h2>
+        <div class="flex flex-wrap gap-3" id="quick-actions">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <i data-lucide="bell" class="w-5 h-5 text-indigo-600"></i> Notifications
+        </h2>
+        <div id="notifications-list">
+          <p class="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ID CARD VIEW ===================== -->
+    <section id="view-idcard" class="space-y-6 hidden">
+      <div class="card p-6">
+        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+          <i data-lucide="credit-card" class="w-5 h-5 text-indigo-600"></i> Student ID Card
+        </h2>
+        <div class="flex flex-col items-center gap-6">
+          <div id="idcard-element" class="idcard">
+            <!-- filled by JS -->
+          </div>
+          <div class="flex flex-wrap justify-center gap-3">
+            <button id="btn-upload-photo" class="btn btn-outline flex items-center gap-2">
+              <i data-lucide="camera" class="w-4 h-4"></i> Change Photo
+            </button>
+            <button id="btn-print-idcard" class="btn btn-outline flex items-center gap-2">
+              <i data-lucide="printer" class="w-4 h-4"></i> Print
+            </button>
+            <button id="btn-download-idcard" class="btn btn-primary flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i> Download PNG
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== OFFER LETTER VIEW ===================== -->
+    <section id="view-offer" class="space-y-6 hidden">
+      <div id="offer-letter-content">
+        <p class="text-gray-500">Loading offer letter...</p>
+      </div>
+    </section>
+
+    <!-- ===================== TASKS VIEW ===================== -->
+    <section id="view-tasks" class="space-y-6 hidden">
+      <div id="tasks-container">
+        <p class="text-gray-500">Loading tasks...</p>
+      </div>
+    </section>
+
+    <!-- ===================== PAYMENT VIEW ===================== -->
+    <section id="view-payment" class="space-y-6 hidden">
+      <div id="payment-container">
+        <p class="text-gray-500">Loading payment info...</p>
+      </div>
+    </section>
+
+    <!-- ===================== CERTIFICATE VIEW ===================== -->
+    <section id="view-certificate" class="space-y-6 hidden">
+      <div id="certificate-container">
+        <p class="text-gray-500">Loading certificate status...</p>
+      </div>
+    </section>
+
+    <!-- ===================== FEEDBACK VIEW ===================== -->
+    <section id="view-feedback" class="space-y-6 hidden">
+      <div class="card p-6 max-w-2xl mx-auto">
+        <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+          <i data-lucide="message-square" class="w-5 h-5 text-indigo-600"></i> Feedback
+        </h2>
+        <div id="feedback-content">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /lms-content -->
+
+<script type="module">
+import { initTheme, esc, toast, badge, calcInternship, fmtDate, money, printElement, downloadAsImage, downloadAsPdf, todayStr, currentYear } from './assets/js/utils.js';
+import { getSettings, getNotifications, markNotificationsRead, addFeedback, listFeedback, getCertificate, saveStudent } from './assets/js/database.js';
+import { watchAuth, currentUser, logout } from './assets/js/auth.js';
+import { getMyStudent, getTaskProgress, renderLmsChrome } from './assets/js/student.js';
+import { getStudentWeeks, submitTaskSubmission, GITHUB_RE } from './assets/js/tasks.js';
+import { getPaymentView, submitQrPayment } from './assets/js/payment.js';
+// Razorpay is handled via dedicated razorpay.html page (see payment section link)
+import { getCertificateStatus, unlockIfEligible, certificateHtml, defaultSignatureUrl } from './assets/js/certificate.js';
+
+/* ──────────────── State ──────────────── */
+let student = null;
+let settings = null;
+let currentView = 'dashboard';
+
+/* ──────────────── Init ──────────────── */
+initTheme();
+
+(async () => {
+  try {
+    settings = await getSettings();
+  } catch (e) {
+    console.error('Failed to load settings', e);
+  }
+
+  watchAuth(async (user) => {
+    if (!user) {
+      location.href = 'lms.html';
+      return;
+    }
+    try {
+      student = await getMyStudent(user);
+    } catch (e) {
+      console.error('Failed to fetch student', e);
+      student = null;
+    }
+
+    document.getElementById('loading-screen').classList.add('hidden');
+
+    if (!student) {
+      document.getElementById('not-linked').classList.remove('hidden');
+      document.getElementById('btn-notlinked-logout').addEventListener('click', () => logout());
+      return;
+    }
+
+    // Render chrome with active key from hash or default
+    const hash = location.hash.replace('#', '');
+    currentView = hash || 'dashboard';
+    await renderLmsChrome(student, settings, currentView);
+    lucide.createIcons();
+
+    // Auto-unlock certificate
+    try {
+      const certId = await unlockIfEligible(student, settings);
+      if (certId) {
+        student.certificateStatus = 'UNLOCKED';
+        student.certificateId = certId;
+      }
+    } catch (e) {
+      console.warn('Certificate auto-unlock check failed', e);
+    }
+
+    // Wire up hash-based routing
+    window.addEventListener('hashchange', () => {
+      const h = location.hash.replace('#', '') || 'dashboard';
+      switchView(h);
+    });
+
+    // Load initial view
+    await switchView(currentView);
+  });
+})();
+
+/* ──────────────── View Router ──────────────── */
+async function switchView(key) {
+  currentView = key;
+  // Hide all views
+  document.querySelectorAll('#lms-content section[id^="view-"]').forEach(el => el.classList.add('hidden'));
+  // Show target
+  const target = document.getElementById(`view-${key}`);
+  if (target) {
+    target.classList.remove('hidden');
+  }
+
+  // Re-render chrome to update active sidebar link
+  try {
+    await renderLmsChrome(student, settings, key);
+    lucide.createIcons();
+  } catch (e) { /* ignore re-render errors */ }
+
+  // Load view data
+  switch (key) {
+    case 'dashboard': await loadDashboard(); break;
+    case 'idcard': loadIdCard(); break;
+    case 'offer': loadOfferLetter(); break;
+    case 'tasks': await loadTasks(); break;
+    case 'payment': await loadPayment(); break;
+    case 'certificate': await loadCertificate(); break;
+    case 'feedback': await loadFeedback(); break;
+  }
+}
+
+/* ──────────────── DASHBOARD ──────────────── */
+async function loadDashboard() {
+  // Profile fields
+  const profileFields = [
+    { label: 'Name', value: student.name },
+    { label: 'Student ID', value: student.studentId },
+    { label: 'Domain', value: student.domainName },
+    { label: 'Email', value: student.email },
+    { label: 'Phone', value: student.phone },
+    { label: 'College', value: student.college },
+    { label: 'Department', value: student.department },
+    { label: 'Degree', value: student.degree },
+  ];
+  document.getElementById('profile-fields').innerHTML = profileFields.map(f =>
+    `<div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">${esc(f.label)}</p>
+      <p class="font-medium text-sm sm:text-base">${esc(f.value || '--')}</p>
+    </div>`
+  ).join('');
+
+  // Timeline — use domain-specific duration stored on student record
+  const domainDays = student.duration || 30;
+  const tl = calcInternship(student.startDate, domainDays);
+  const timelineItems = [
+    { label: 'Start Date', value: fmtDate(tl.startDate) },
+    { label: 'End Date', value: fmtDate(tl.endDate) },
+    { label: 'Current Day', value: `${tl.currentDay} of ${domainDays}` },
+    { label: 'Remaining Days', value: tl.remainingDays },
+    { label: 'Current Week', value: `Week ${tl.week}` },
+    { label: 'Status', value: '' , badge: true, status: tl.status },
+  ];
+  document.getElementById('timeline-content').innerHTML = timelineItems.map(t =>
+    `<div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">${esc(t.label)}</p>
+      ${t.badge ? badge(t.status) : `<p class="font-medium">${esc(String(t.value))}</p>`}
+    </div>`
+  ).join('');
+  document.getElementById('timeline-progress-text').textContent = `${tl.progressPct}%`;
+  document.getElementById('timeline-progress-bar').style.width = `${tl.progressPct}%`;
+
+  // Status badges
+  document.getElementById('status-badges').innerHTML = `
+    <div class="text-center"><p class="text-xs text-gray-500 mb-1">Internship</p>${badge(tl.status)}</div>
+    <div class="text-center"><p class="text-xs text-gray-500 mb-1">Payment</p>${badge(student.paymentStatus || 'NOT_PAID')}</div>
+    <div class="text-center"><p class="text-xs text-gray-500 mb-1">Certificate</p>${badge(student.certificateStatus || 'LOCKED')}</div>
+  `;
+
+  // Task progress
+  try {
+    const prog = await getTaskProgress(student);
+    document.getElementById('task-progress-content').innerHTML = `
+      <div class="flex items-end gap-3 mb-2">
+        <span class="text-3xl font-bold text-indigo-600">${prog.completed}</span>
+        <span class="text-gray-500 mb-1">/ ${prog.total} tasks completed</span>
+      </div>
+      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+        <div class="bg-green-500 h-3 rounded-full transition-all duration-500" style="width:${prog.pct}%"></div>
+      </div>
+      <p class="text-sm text-gray-500">${prog.submitted} submitted, ${prog.completed} approved (${prog.pct}%)</p>
+    `;
+  } catch (e) {
+    document.getElementById('task-progress-content').innerHTML = '<p class="text-red-500">Could not load task progress.</p>';
+  }
+
+  // Quick actions
+  const actions = [
+    { label: 'View ID Card', icon: 'credit-card', hash: '#idcard' },
+    { label: 'Offer Letter', icon: 'file-text', hash: '#offer' },
+    { label: 'Tasks', icon: 'clipboard-list', hash: '#tasks' },
+    { label: 'Payment', icon: 'banknote', hash: '#payment' },
+    { label: 'Certificate', icon: 'award', hash: '#certificate' },
+  ];
+  document.getElementById('quick-actions').innerHTML = actions.map(a =>
+    `<a href="${a.hash}" class="btn btn-outline flex items-center gap-2">
+      <i data-lucide="${a.icon}" class="w-4 h-4"></i> ${esc(a.label)}
+    </a>`
+  ).join('');
+
+  // Notifications
+  try {
+    const notifs = await getNotifications(student.studentId);
+    if (notifs.length === 0) {
+      document.getElementById('notifications-list').innerHTML = '<p class="text-gray-500 text-sm">No notifications yet.</p>';
+    } else {
+      document.getElementById('notifications-list').innerHTML = `<div class="space-y-3">${notifs.map(n =>
+        `<div class="flex gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+          <i data-lucide="info" class="w-5 h-5 text-indigo-500 shrink-0 mt-0.5"></i>
+          <div>
+            <p class="font-medium text-sm">${esc(n.title || 'Notification')}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">${esc(n.body || '')}</p>
+            ${n.timestamp ? `<p class="text-xs text-gray-400 mt-1">${new Date(n.timestamp).toLocaleString()}</p>` : ''}
+          </div>
+        </div>`
+      ).join('')}</div>`;
+    }
+  } catch (e) {
+    document.getElementById('notifications-list').innerHTML = '<p class="text-red-500 text-sm">Could not load notifications.</p>';
+  }
+
+  lucide.createIcons();
+}
+
+/* ──────────────── ID CARD ──────────────── */
+function loadIdCard() {
+  const logoUrl = settings?.company?.logoUrl || 'assets/img/company-logo.png';
+  const companyName = settings?.company?.name || 'Raksude Tech';
+  const photoUrl = student.photoUrl || '';
+  const initials = (student.name || '??').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+  const photoHtml = photoUrl
+    ? `<img src="${esc(photoUrl)}" alt="Photo" class="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 dark:border-indigo-900">`
+    : `<div class="w-24 h-24 rounded-full bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold border-4 border-indigo-100 dark:border-indigo-900">${esc(initials)}</div>`;
+
+  const logoHtml = `<div class="w-12 h-12 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-sm"><img src="${esc(logoUrl)}" alt="Logo" class="w-full h-full object-contain"></div>`;
+
+  document.getElementById('idcard-element').innerHTML = `
+    <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 p-4 flex items-center gap-3">
+      ${logoHtml}
+      <div>
+        <h3 class="text-white font-bold text-lg leading-tight">${esc(companyName)}</h3>
+        <p class="text-indigo-200 text-xs font-medium">Internship Program</p>
+      </div>
+    </div>
+    <div class="p-6 flex flex-col items-center gap-4">
+      ${photoHtml}
+      <div class="text-center">
+        <h3 class="text-xl font-bold text-gray-900">${esc(student.name)}</h3>
+        <p class="text-indigo-600 font-medium">${esc(student.studentId)}</p>
+      </div>
+      <div class="w-full space-y-2 text-sm">
+        <div class="flex justify-between border-b border-gray-100 pb-1">
+          <span class="text-gray-500">Domain</span>
+          <span class="font-medium text-gray-900">${esc(student.domainName || '--')}</span>
+        </div>
+        <div class="flex justify-between border-b border-gray-100 pb-1">
+          <span class="text-gray-500">College</span>
+          <span class="font-medium text-gray-900">${esc(student.college || '--')}</span>
+        </div>
+        <div class="flex justify-between border-b border-gray-100 pb-1">
+          <span class="text-gray-500">Department</span>
+          <span class="font-medium text-gray-900">${esc(student.department || '--')}</span>
+        </div>
+        <div class="flex justify-between border-b border-gray-100 pb-1">
+          <span class="text-gray-500">Start Date</span>
+          <span class="font-medium text-gray-900">${fmtDate(student.startDate)}</span>
+        </div>
+        <div class="flex justify-between border-b border-gray-100 pb-1">
+          <span class="text-gray-500">End Date</span>
+          <span class="font-medium text-gray-900">${fmtDate(student.endDate)}</span>
+        </div>
+      </div>
+      <div class="w-full pt-2 flex items-center justify-between text-xs text-gray-400 border-t border-gray-100">
+        <span>Verified Intern</span>
+        <span>${esc(companyName)}</span>
+      </div>
+    </div>`;
+
+  // Wire download / print
+  document.getElementById('btn-print-idcard').onclick = () => printElement(document.getElementById('idcard-element'));
+  document.getElementById('btn-download-idcard').onclick = async () => {
+    try {
+      await downloadAsImage(document.getElementById('idcard-element'), `${student.studentId}_idcard.png`);
+      toast('ID Card downloaded!', 'success');
+    } catch (e) {
+      toast('Download failed. Try again.', 'error');
+    }
+  };
+  document.getElementById('btn-upload-photo').onclick = () => {
+    const url = prompt('Enter a direct image URL for your profile photo:', student.photoUrl || '');
+    if (url === null) return;
+    saveStudent(student.studentId, { photoUrl: url.trim() })
+      .then(() => {
+        student.photoUrl = url.trim();
+        toast('Profile photo updated!', 'success');
+        loadIdCard();
+      })
+      .catch(e => toast(e.message, 'error'));
+  };
+
+  lucide.createIcons();
+}
+
+/* ──────────────── OFFER LETTER ──────────────── */
+function loadOfferLetter() {
+  const c = settings.company || {};
+  const certCfg = settings.certificate || {};
+  const logoUrl = c.logoUrl || 'assets/img/company-logo.png';
+  const companyName = c.name || 'Raksude Tech';
+  const fee = student.feeAmount != null ? Number(student.feeAmount) : Number(settings.payment?.amount || 0);
+  const container = document.getElementById('offer-letter-content');
+
+  const logoHtml = `<div class="w-16 h-16 rounded-xl bg-white p-1 flex items-center justify-center border border-slate-200 shrink-0 shadow-sm"><img src="${esc(logoUrl)}" alt="Logo" class="w-full h-full object-contain"></div>`;
+  const addressLine = [c.address, c.email, c.phone].filter(Boolean).map(esc).join(' · ');
+  const studentAddr = [student.address, student.city, student.state].filter(Boolean).join(', ');
+
+  container.innerHTML = `
+    <div class="flex flex-col items-center gap-5">
+      <div class="w-full paper-scroll-wrapper flex justify-start lg:justify-center">
+        <div id="offer-letter-paper" class="letter-paper">
+        <div class="flex items-center gap-4 border-b-2 border-slate-800 pb-5">
+          ${logoHtml}
+          <div>
+            <h2 class="text-2xl font-extrabold text-slate-900" style="font-family:Georgia,serif">${esc(companyName)}</h2>
+            ${addressLine ? `<p class="text-xs text-slate-500 mt-1">${addressLine}</p>` : ''}
+          </div>
+        </div>
+
+        <div class="flex justify-between mt-6 text-sm text-slate-600">
+          <p>Ref: OFFER/${currentYear()}/${esc(student.studentId)}</p>
+          <p>Date: ${fmtDate(todayStr())}</p>
+        </div>
+
+        <h3 class="text-center text-xl font-extrabold tracking-wide uppercase text-slate-800 mt-8" style="font-family:Georgia,serif">Offer Letter — Internship Program</h3>
+
+        <div class="mt-8 text-sm leading-relaxed text-slate-700 space-y-4">
+          <div>
+            <p class="font-semibold text-slate-900">${esc(student.name)}</p>
+            ${studentAddr ? `<p>${esc(studentAddr)}</p>` : ''}
+            ${student.college ? `<p>${esc(student.college)}${student.degree ? ` — ${esc(student.degree)}` : ''}</p>` : ''}
+          </div>
+          <p>Dear ${esc(student.name || 'Candidate')},</p>
+          <p>We are pleased to offer you an internship at <strong>${esc(c.name || 'the company')}</strong> in the <strong>${esc(student.domainName || '')}</strong> domain, from <strong>${fmtDate(student.startDate)}</strong> to <strong>${fmtDate(student.endDate)}</strong> (${student.duration || 30} days). Your intern ID is <strong>${esc(student.studentId)}</strong>.</p>
+          <p>During the program you will work through weekly tasks released on the LMS, submit your work as GitHub repositories, and receive mentoring and review. The terms of this offer are:</p>
+          <ol class="list-decimal list-inside space-y-1.5 text-[13px]">
+            <li>The internship runs for ${student.duration || 30} calendar days on an individual schedule starting from your registration date.</li>
+            <li>Weekly tasks unlock progressively according to the schedule; each task is submitted through the LMS as a GitHub repository URL and is approved on submission.</li>
+            <li>An internship fee of <strong>${money(fee)}</strong> is payable via UPI/QR or online payment; UPI payments are verified by the accounts team before activation.</li>
+            <li>A verified certificate of completion is issued after the fee is paid, the ${student.duration || 30}-day period is completed, and all tasks are submitted and approved.</li>
+            <li>You are expected to submit original work and follow the code of conduct published on the portal.</li>
+          </ol>
+          <p>We look forward to your contribution and wish you a rewarding learning experience. Congratulations on your offer!</p>
+        </div>
+
+        <div class="mt-12 flex items-end justify-between gap-6">
+          <p class="text-xs text-slate-400">This is a system-generated offer letter and does not require a physical seal.</p>
+          <div class="text-center shrink-0">
+            <img src="${esc(certCfg.signatureUrl || defaultSignatureUrl())}" class="h-16 mx-auto object-contain" alt="signature">
+            <div class="border-t border-slate-400 pt-1 min-w-44">
+              <p class="font-semibold text-slate-800">${esc(certCfg.authorizedName || 'Founder & CEO')}</p>
+              <p class="text-xs text-slate-500">${esc(certCfg.designation || 'Founder & CEO')}</p>
+              <p class="text-xs text-slate-500">${esc(c.name || '')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="flex gap-3 flex-wrap justify-center no-print">
+        <button id="btn-print-offer" class="btn btn-outline flex items-center gap-2">
+          <i data-lucide="printer" class="w-4 h-4"></i> Print
+        </button>
+        <button id="btn-download-offer" class="btn btn-primary flex items-center gap-2">
+          <i data-lucide="download" class="w-4 h-4"></i> Download PDF
+        </button>
+        ${student.offerLetterUrl ? `<a href="${esc(student.offerLetterUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline flex items-center gap-2"><i data-lucide="external-link" class="w-4 h-4"></i> Assigned Letter</a>` : ''}
+      </div>
+    </div>`;
+
+  document.getElementById('btn-print-offer').onclick = () => printElement(document.getElementById('offer-letter-paper'));
+  document.getElementById('btn-download-offer').onclick = async () => {
+    const btn = document.getElementById('btn-download-offer');
+    btn.disabled = true;
+    try {
+      await downloadAsPdf(document.getElementById('offer-letter-paper'), `${student.studentId}-offer-letter.pdf`, { captureWidth: 820, fitSinglePage: true });
+      toast('Offer letter PDF downloaded!', 'success');
+    } catch (e) {
+      console.error('Offer letter PDF failed', e);
+      toast('Download failed. Try again.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  };
+  lucide.createIcons();
+}
+
+/* ──────────────── TASKS ──────────────── */
+async function loadTasks() {
+  const container = document.getElementById('tasks-container');
+  try {
+    const data = await getStudentWeeks(student);
+    if (!data.weeks || data.weeks.length === 0) {
+      container.innerHTML = '<div class="card p-6 text-center text-gray-500">No tasks available for your domain yet.</div>';
+      return;
+    }
+
+    container.innerHTML = data.weeks.map((w, idx) => {
+      const weekNum = w.week;
+      const unlockDay = w.unlockDay;
+      const unlocked = w.unlocked;
+
+      let inner = '';
+      if (!unlocked) {
+        inner = `
+          <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+            <i data-lucide="lock" class="w-12 h-12 mb-3"></i>
+            <p class="font-medium text-lg">Week ${weekNum} Locked</p>
+            <p class="text-sm mt-1">Unlocks on ${fmtDate(w.unlocksOn)} (Day ${unlockDay})</p>
+          </div>`;
+      } else {
+        if (!w.tasks || w.tasks.length === 0) {
+          inner = '<p class="text-gray-500 text-sm py-4">No tasks assigned for this week yet.</p>';
+        } else {
+          inner = w.tasks.map((t, tIdx) => renderTaskCard(t, weekNum, tIdx)).join('');
+        }
+      }
+
+      const headerColor = unlocked ? 'border-indigo-500' : 'border-gray-300 dark:border-gray-600';
+      const headerBg = unlocked ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-gray-50 dark:bg-gray-800';
+
+      return `
+        <div class="card overflow-hidden mb-6">
+          <div class="px-6 py-4 ${headerBg} border-l-4 ${headerColor} flex items-center justify-between">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+              ${unlocked ? '<i data-lucide="unlock" class="w-4 h-4 text-indigo-600"></i>' : '<i data-lucide="lock" class="w-4 h-4 text-gray-400"></i>'}
+              Week ${weekNum}
+            </h3>
+            <span class="text-xs text-gray-500">Unlocks Day ${unlockDay}</span>
+          </div>
+          <div class="p-6">${inner}</div>
+        </div>`;
+    }).join('');
+
+    // Unlock rule info
+    const scheduleStr = (data.weeks || []).map(w => `Week ${w.week} → Day ${w.unlockDay}`).join(' | ');
+    container.innerHTML += `
+      <div class="card p-4 text-sm text-gray-500 dark:text-gray-400 flex items-start gap-2">
+        <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i>
+        <p><strong>Auto-unlock schedule:</strong> ${scheduleStr || 'Week 1 → Day 1'}</p>
+      </div>`;
+
+    // Wire up submission forms
+    wireUpTaskForms(data);
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Tasks load error', e);
+    container.innerHTML = '<div class="card p-6 text-red-500">Failed to load tasks. Please try again.</div>';
+  }
+}
+
+function renderTaskCard(task, weekNum, tIdx) {
+  const sub = task.submission;
+  const formId = `task-form-${weekNum}-${tIdx}`;
+  const hasSubmission = !!sub;
+
+  let submissionDisplay = '';
+  if (hasSubmission) {
+    submissionDisplay = `
+      <div class="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+        <div class="flex items-center gap-2 mb-2">
+          ${badge(sub.status)}
+          <span class="text-sm text-gray-500">Submitted ${sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : ''}</span>
+        </div>
+        <p class="text-sm"><strong>GitHub:</strong> <a href="${esc(sub.githubUrl)}" target="_blank" class="text-indigo-600 underline">${esc(sub.githubUrl)}</a></p>
+        ${sub.liveUrl ? `<p class="text-sm"><strong>Live URL:</strong> <a href="${esc(sub.liveUrl)}" target="_blank" class="text-indigo-600 underline">${esc(sub.liveUrl)}</a></p>` : ''}
+        ${sub.description ? `<p class="text-sm mt-1"><strong>Description:</strong> ${esc(sub.description)}</p>` : ''}
+      </div>`;
+  }
+
+  const resources = task.resources && task.resources.length > 0
+    ? `<div class="mb-3"><p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Resources</p>
+       <ul class="list-disc list-inside text-sm space-y-1">${task.resources.map(r =>
+         `<li><a href="${esc(r.url || r)}" target="_blank" class="text-indigo-600 hover:underline">${esc(r.title || r.url || r)}</a></li>`
+       ).join('')}</ul></div>`
+    : '';
+
+  return `
+    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4 last:mb-0">
+      <h4 class="font-semibold text-base mb-1">${esc(task.title)}</h4>
+      ${task.description ? `<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${esc(task.description)}</p>` : ''}
+      ${task.instructions ? `<p class="text-sm text-gray-500 italic mb-2"><strong>Instructions:</strong> ${esc(task.instructions)}</p>` : ''}
+      ${task.deadline ? `<p class="text-xs text-gray-400 mb-2">Deadline: ${fmtDate(task.deadline)}</p>` : ''}
+      ${resources}
+
+      ${submissionDisplay}
+
+      <form id="${formId}" class="mt-4 space-y-3 ${hasSubmission ? 'hidden' : ''}" data-week="${weekNum}" data-task-id="${esc(task.id || task.taskId)}" data-task-title="${esc(task.title)}">
+        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">${hasSubmission ? 'Edit Submission' : 'Submit Task'}</p>
+        <div>
+          <label class="label">GitHub Repo URL *</label>
+          <input type="url" name="githubUrl" required placeholder="https://github.com/user/repo" class="input w-full" value="${hasSubmission ? esc(sub.githubUrl) : ''}">
+          <p class="text-xs text-red-500 github-error hidden">Please enter a valid GitHub repository URL.</p>
+        </div>
+        <div>
+          <label class="label">Live URL (optional)</label>
+          <input type="url" name="liveUrl" placeholder="https://your-app.vercel.app" class="input w-full" value="${hasSubmission ? esc(sub.liveUrl || '') : ''}">
+        </div>
+        <div>
+          <label class="label">Description (optional)</label>
+          <textarea name="description" rows="2" class="input w-full" placeholder="Brief description of your work...">${hasSubmission ? esc(sub.description || '') : ''}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">${hasSubmission ? 'Update Submission' : 'Submit'}</button>
+      </form>
+      ${hasSubmission ? `<button class="btn btn-outline btn-sm mt-2 edit-submission-btn" data-form="${formId}">Edit Submission</button>` : ''}
+    </div>`;
+}
+
+function wireUpTaskForms(weeksData) {
+  // Edit buttons toggle form visibility
+  document.querySelectorAll('.edit-submission-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const form = document.getElementById(btn.dataset.form);
+      if (form) {
+        form.classList.toggle('hidden');
+        btn.textContent = form.classList.contains('hidden') ? 'Edit Submission' : 'Cancel Edit';
+      }
+    });
+  });
+
+  // Form submissions
+  document.querySelectorAll('form[id^="task-form-"]').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const githubUrl = form.querySelector('[name="githubUrl"]').value.trim();
+      const liveUrl = form.querySelector('[name="liveUrl"]').value.trim();
+      const description = form.querySelector('[name="description"]').value.trim();
+      const errEl = form.querySelector('.github-error');
+
+      if (!GITHUB_RE.test(githubUrl)) {
+        errEl.classList.remove('hidden');
+        return;
+      }
+      errEl.classList.add('hidden');
+
+      const btn = form.querySelector('button[type="submit"]');
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        await submitTaskSubmission({
+          studentId: student.studentId,
+          taskId: form.dataset.taskId,
+          taskTitle: form.dataset.taskTitle,
+          domainId: student.domainId,
+          week: parseInt(form.dataset.week),
+          githubUrl,
+          liveUrl: liveUrl || '',
+          description: description || '',
+        });
+        toast('Task submitted successfully!', 'success');
+        await loadTasks(); // re-render
+
+        // Submissions are auto-approved — re-check certificate eligibility instantly.
+        try {
+          const certId = await unlockIfEligible(student, settings);
+          if (certId) {
+            student.certificateStatus = 'UNLOCKED';
+            student.certificateId = certId;
+            toast('Congratulations! Your certificate has been unlocked.', 'success');
+          }
+        } catch (ce) { console.warn('Certificate unlock check failed', ce); }
+      } catch (err) {
+        console.error('Task submission error', err);
+        toast('Submission failed. Please try again.', 'error');
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
+    });
+  });
+}
+
+/* ──────────────── PAYMENT ──────────────── */
+async function loadPayment() {
+  const container = document.getElementById('payment-container');
+  try {
+    const view = getPaymentView(student, settings);
+
+    // Already paid
+    if (view.status === 'PAID' || view.status === 'paid') {
+      const isRazorpayVerified = student.paymentVerified === true || student.certificateStatus === 'UNLOCKED';
+      const payId = student.paymentId || '';
+      const certUnlocked = student.certificateStatus === 'UNLOCKED';
+      container.innerHTML = `
+        <div class="card p-6 sm:p-8 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
+          <div class="flex items-start gap-4 mb-6">
+            <div class="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+              <i data-lucide="check-circle" class="w-7 h-7 text-white"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap mb-1">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white">⚡ Payment Verified</span>
+                ${isRazorpayVerified ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">Razorpay · Server Verified</span>' : ''}
+              </div>
+              <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Payment Complete ✓</h3>
+              <p class="text-sm text-slate-600 dark:text-slate-400 mt-0.5">Your internship enrollment fee of <strong>${money(view.fee)}</strong> has been received and verified.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 text-xs">
+            <div class="p-3 rounded-xl bg-white/70 dark:bg-slate-800/60 border border-emerald-100 dark:border-emerald-900/50">
+              <span class="text-slate-400 block mb-0.5">Amount Paid</span>
+              <span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-base">${money(view.fee)}</span>
+            </div>
+            <div class="p-3 rounded-xl bg-white/70 dark:bg-slate-800/60 border border-emerald-100 dark:border-emerald-900/50">
+              <span class="text-slate-400 block mb-0.5">Payment Method</span>
+              <span class="font-bold text-indigo-700 dark:text-indigo-300">Razorpay</span>
+            </div>
+            <div class="p-3 rounded-xl bg-white/70 dark:bg-slate-800/60 border border-emerald-100 dark:border-emerald-900/50">
+              <span class="text-slate-400 block mb-0.5">Certificate</span>
+              <span class="font-bold ${certUnlocked ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">${certUnlocked ? '🔓 Unlocked' : '⏳ Processing'}</span>
+            </div>
+            ${payId ? `<div class="p-3 rounded-xl bg-white/70 dark:bg-slate-800/60 border border-emerald-100 dark:border-emerald-900/50 col-span-2 sm:col-span-3">
+              <span class="text-slate-400 block mb-0.5">Razorpay Payment ID</span>
+              <span class="font-mono font-bold text-slate-700 dark:text-slate-300 text-[11px]">${esc(payId)}</span>
+            </div>` : ''}
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            ${certUnlocked ? `<a href="certificate.html?studentId=${encodeURIComponent(student.studentId)}" class="btn btn-primary flex items-center gap-2 shadow-lg shadow-indigo-500/25">
+              <i data-lucide="award" class="w-4 h-4"></i> View Certificate
+            </a>` : ''}
+            <a href="razorpay.html?studentId=${encodeURIComponent(student.studentId)}" class="btn btn-outline flex items-center gap-2 text-sm">
+              <i data-lucide="file-text" class="w-4 h-4"></i> Payment Receipt
+            </a>
+          </div>
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    // Pending approval
+    if (view.status === 'PENDING') {
+      container.innerHTML = `
+        <div class="card p-8 text-center">
+          <div class="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="clock" class="w-8 h-8 text-amber-600"></i>
+          </div>
+          <h3 class="text-2xl font-bold mb-2">Payment Under Review</h3>
+          <p class="text-gray-500 mb-4">Your payment has been submitted and is awaiting admin approval.</p>
+          ${badge('PENDING')}
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    // Stop payment
+    if (view.stop) {
+      container.innerHTML = `
+        <div class="card p-8 text-center">
+          <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="circle-x" class="w-8 h-8 text-red-600"></i>
+          </div>
+          <h3 class="text-2xl font-bold mb-2">Payment Disabled</h3>
+          <p class="text-gray-500">Payment collection is currently disabled by the admin. Please try again later.</p>
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    // Official Razorpay Instant Payment Only
+    const payUrl = `razorpay.html?studentId=${encodeURIComponent(student.studentId)}&name=${encodeURIComponent(student.name || '')}&course=${encodeURIComponent(student.domainName || '')}`;
+
+    container.innerHTML = `
+      <div class="card p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <span class="text-xs uppercase tracking-wider font-bold text-slate-400">Internship Enrollment Fee</span>
+          <p class="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5">${money(view.fee)}</p>
+        </div>
+        <div>${badge(view.status)}</div>
+      </div>
+
+      <div class="card p-6 sm:p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/30 dark:shadow-none space-y-6">
+        <div class="flex items-start justify-between flex-wrap gap-3">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                ⚡ OFFICIAL RAZORPAY GATEWAY
+              </span>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                Instant Automated Unlock
+              </span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white pt-1">
+              Complete Your Internship Payment
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Pay securely via official Razorpay Checkout. Upon payment, your completion certificate is automatically unlocked without manual waiting.
+            </p>
+          </div>
+        </div>
+
+        <!-- Allowed Payment Methods Preview -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold">
+                <i data-lucide="qr-code" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-slate-900 dark:text-white">UPI QR & Apps</h4>
+                <p class="text-[11px] text-slate-400">GPay, PhonePe, Paytm, BHIM</p>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Scan Razorpay's dynamic QR code using any UPI app on your phone, or pay via UPI ID.</p>
+          </div>
+
+          <div class="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                <i data-lucide="credit-card" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-slate-900 dark:text-white">Cards</h4>
+                <p class="text-[11px] text-slate-400">Debit & Credit Cards</p>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Visa, Mastercard, RuPay, and American Express cards supported with 256-bit encryption.</p>
+          </div>
+        </div>
+
+        <!-- Student & Course Details -->
+        <div class="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <span class="text-slate-400 block">Student ID</span>
+            <span class="font-mono font-bold text-slate-800 dark:text-slate-200">${esc(student.studentId)}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">Student Name</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200 truncate block">${esc(student.name || 'Student')}</span>
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <span class="text-slate-400 block">Course / Domain</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200 truncate block">${esc(student.domainName || 'Internship')}</span>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p class="text-xs text-slate-400 flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+            PCI-DSS Level 1 & RBI Compliant Checkout
+          </p>
+          <a href="${payUrl}" class="btn btn-primary px-8 py-3.5 flex items-center justify-center gap-2.5 text-base font-extrabold shadow-xl shadow-indigo-600/30 w-full sm:w-auto">
+            <i data-lucide="zap" class="w-5 h-5"></i> Proceed to Pay ${money(view.fee)}
+          </a>
+        </div>
+      </div>`;
+
+    // Razorpay payments now handled via dedicated razorpay.html page
+
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Payment load error', e);
+    container.innerHTML = '<div class="card p-6 text-red-500">Failed to load payment information.</div>';
+  }
+}
+
+/* ──────────────── CERTIFICATE ──────────────── */
+async function loadCertificate() {
+  const container = document.getElementById('certificate-container');
+  try {
+    const status = await getCertificateStatus(student);
+
+    if (!status.unlocked) {
+      // Locked state - show checklist
+      const items = status.checklist || [];
+      container.innerHTML = `
+        <div class="card p-8 text-center mb-6">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="lock" class="w-8 h-8 text-gray-400"></i>
+          </div>
+          <h3 class="text-2xl font-bold mb-2">Certificate Locked</h3>
+          <p class="text-gray-500 mb-6">Complete all requirements below to unlock your certificate.</p>
+          <div class="max-w-md mx-auto space-y-3 text-left">
+            ${items.map(item => `
+              <div class="flex items-center gap-3 p-3 rounded-lg ${item.done ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}">
+                ${item.done
+                  ? '<i data-lucide="circle-check" class="w-5 h-5 text-green-600 shrink-0"></i>'
+                  : '<i data-lucide="circle" class="w-5 h-5 text-gray-400 shrink-0"></i>'}
+                <span class="${item.done ? 'text-green-800 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}">${esc(item.label)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    // Unlocked - fetch and display certificate
+    let certHtmlStr = '';
+    if (status.certificateId) {
+      try {
+        const cert = await getCertificate(status.certificateId);
+        if (cert) {
+          certHtmlStr = certificateHtml(cert, settings);
+        }
+      } catch (e) {
+        console.error('Failed to fetch certificate doc', e);
+      }
+    }
+
+    const shareLink = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}verify-certificate.html?id=${encodeURIComponent(status.certificateId || '')}`;
+
+    container.innerHTML = `
+      <div class="card p-6 text-center mb-6">
+        <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="award" class="w-8 h-8 text-green-600"></i>
+        </div>
+        <h3 class="text-2xl font-bold mb-2">Certificate Unlocked!</h3>
+        <p class="text-gray-500 mb-4">Congratulations! Your certificate of completion is ready.</p>
+        ${badge('UNLOCKED')}
+      </div>
+
+      ${certHtmlStr ? `
+        <div class="flex flex-col items-center gap-4 mb-6">
+          <div class="w-full paper-scroll-wrapper flex justify-start lg:justify-center">
+            <div id="certificate-render">${certHtmlStr}</div>
+          </div>
+          <div class="flex gap-3 flex-wrap justify-center">
+            <button id="btn-print-cert" class="btn btn-outline flex items-center gap-2">
+              <i data-lucide="printer" class="w-4 h-4"></i> Print Certificate
+            </button>
+            <button id="btn-download-cert" class="btn btn-primary flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i> Download PNG
+            </button>
+          </div>
+        </div>
+      ` : '<div class="card p-6 text-center text-gray-500">Certificate document could not be loaded.</div>'}
+
+      <div class="card p-6 text-center">
+        <h4 class="font-bold mb-2">Share / Verify</h4>
+        <p class="text-sm text-gray-500 mb-3">Share this link so others can verify your certificate:</p>
+        <div class="flex items-center gap-2 max-w-lg mx-auto">
+          <input type="text" readonly value="${esc(shareLink)}" class="input flex-1 text-sm bg-gray-50 dark:bg-gray-800" id="cert-share-link">
+          <button id="btn-copy-cert-link" class="btn btn-outline btn-sm">Copy</button>
+        </div>
+      </div>`;
+
+    // Wire cert buttons
+    const certEl = document.getElementById('certificate-render');
+    const printBtn = document.getElementById('btn-print-cert');
+    const dlBtn = document.getElementById('btn-download-cert');
+    if (printBtn && certEl) {
+      printBtn.onclick = () => printElement(certEl);
+    }
+    if (dlBtn && certEl) {
+      dlBtn.onclick = async () => {
+        try {
+          await downloadAsImage(certEl, `${student.studentId}-certificate.png`);
+          toast('Certificate downloaded!', 'success');
+        } catch (e) {
+          toast('Download failed.', 'error');
+        }
+      };
+    }
+
+    const copyBtn = document.getElementById('btn-copy-cert-link');
+    if (copyBtn) {
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(document.getElementById('cert-share-link').value);
+          toast('Link copied to clipboard!', 'success');
+        } catch {
+          toast('Could not copy link.', 'error');
+        }
+      };
+    }
+
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Certificate load error', e);
+    container.innerHTML = '<div class="card p-6 text-red-500">Failed to load certificate status.</div>';
+  }
+}
+
+/* ──────────────── FEEDBACK ──────────────── */
+async function loadFeedback() {
+  const container = document.getElementById('feedback-content');
+  try {
+    // Check if feedback already exists
+    const allFeedback = await listFeedback();
+    const existing = allFeedback.find(f => f.studentId === student.studentId);
+
+    if (existing) {
+      container.innerHTML = `
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Thank You for Your Feedback!</h3>
+          <p class="text-gray-500">We appreciate your response.</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 max-w-md mx-auto">
+          <div class="flex items-center gap-1 mb-2" id="existing-stars"></div>
+          ${existing.comment ? `<p class="text-sm text-gray-600 dark:text-gray-400 italic">"${esc(existing.comment)}"</p>` : ''}
+          <p class="text-xs text-gray-400 mt-2">${existing.date ? fmtDate(existing.date) : ''}</p>
+        </div>
+        <div class="text-center mt-6">
+          <button id="btn-update-feedback" class="btn btn-outline btn-sm">Update Feedback</button>
+        </div>
+        <div id="feedback-form-wrapper" class="hidden mt-6"></div>`;
+
+      // Render existing stars
+      const starsContainer = document.getElementById('existing-stars');
+      for (let i = 1; i <= 5; i++) {
+        const starClass = i <= existing.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300';
+        starsContainer.innerHTML += `<i data-lucide="star" class="w-5 h-5 ${starClass}"></i>`;
+      }
+
+      // Update button shows form
+      document.getElementById('btn-update-feedback').addEventListener('click', () => {
+        document.getElementById('feedback-form-wrapper').classList.remove('hidden');
+        document.getElementById('btn-update-feedback').classList.add('hidden');
+        renderFeedbackForm(container.querySelector('#feedback-form-wrapper'), existing);
+      });
+
+      lucide.createIcons();
+      return;
+    }
+
+    // No existing feedback - show form
+    renderFeedbackForm(container, null);
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Feedback load error', e);
+    container.innerHTML = '<p class="text-red-500">Failed to load feedback.</p>';
+  }
+}
+
+function renderFeedbackForm(wrapper, existing) {
+  const currentRating = existing ? existing.rating : 0;
+  const currentComment = existing ? (existing.comment || '') : '';
+
+  wrapper.innerHTML = `
+    <form id="feedback-form" class="space-y-4">
+      <div>
+        <label class="label">Your Rating *</label>
+        <div class="flex items-center gap-1 mt-1" id="star-rating-input">
+          ${[1,2,3,4,5].map(i => `<button type="button" class="star-btn p-1 transition-transform hover:scale-110" data-value="${i}">
+            <i data-lucide="star" class="w-8 h-8 ${i <= currentRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-gray-600'}"></i>
+          </button>`).join('')}
+        </div>
+        <input type="hidden" name="rating" value="${currentRating}" required>
+        <p class="text-xs text-red-500 rating-error hidden">Please select a rating.</p>
+      </div>
+      <div>
+        <label class="label">Comment (optional)</label>
+        <textarea name="comment" rows="4" class="input w-full" placeholder="Share your experience...">${esc(currentComment)}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">${existing ? 'Update Feedback' : 'Submit Feedback'}</button>
+    </form>`;
+
+  let selectedRating = currentRating;
+
+  // Star click handlers
+  wrapper.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRating = parseInt(btn.dataset.value);
+      wrapper.querySelector('[name="rating"]').value = selectedRating;
+      wrapper.querySelectorAll('.star-btn i').forEach((icon, idx) => {
+        if (idx + 1 <= selectedRating) {
+          icon.className = 'w-8 h-8 text-yellow-400 fill-yellow-400';
+        } else {
+          icon.className = 'w-8 h-8 text-gray-300 dark:text-gray-600';
+        }
+      });
+      wrapper.querySelector('.rating-error').classList.add('hidden');
+    });
+  });
+
+  // Hover effect
+  wrapper.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('mouseenter', () => {
+      const val = parseInt(btn.dataset.value);
+      wrapper.querySelectorAll('.star-btn i').forEach((icon, idx) => {
+        if (idx + 1 <= val) {
+          icon.className = 'w-8 h-8 text-yellow-400 fill-yellow-400';
+        } else {
+          icon.className = 'w-8 h-8 text-gray-300 dark:text-gray-600';
+        }
+      });
+    });
+    btn.addEventListener('mouseleave', () => {
+      wrapper.querySelectorAll('.star-btn i').forEach((icon, idx) => {
+        if (idx + 1 <= selectedRating) {
+          icon.className = 'w-8 h-8 text-yellow-400 fill-yellow-400';
+        } else {
+          icon.className = 'w-8 h-8 text-gray-300 dark:text-gray-600';
+        }
+      });
+    });
+  });
+
+  // Submit
+  const form = wrapper.querySelector('#feedback-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const rating = parseInt(form.querySelector('[name="rating"]').value);
+    if (!rating || rating < 1) {
+      form.querySelector('.rating-error').classList.remove('hidden');
+      return;
+    }
+    const comment = form.querySelector('[name="comment"]').value.trim();
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      await addFeedback({
+        studentId: student.studentId,
+        name: student.name,
+        rating,
+        comment,
+        date: todayStr(),
+      });
+      toast('Thank you for your feedback!', 'success');
+      await loadFeedback();
+    } catch (err) {
+      console.error('Feedback submit error', err);
+      toast('Failed to submit feedback.', 'error');
+      btn.disabled = false;
+      btn.textContent = existing ? 'Update Feedback' : 'Submit Feedback';
+    }
+  });
+
+  lucide.createIcons();
+}
+</script>
+</body>
+</html>

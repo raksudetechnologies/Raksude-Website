@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "notifications": {
+      "$studentId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$notifId": {
+          ".validate": "newData.hasChildren(['title', 'body', 'createdAt']) || newData.hasChildren(['read'])"
+        }
+      }
+    },
+    "activity": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$actId": {
+        ".validate": "newData.hasChildren(['text', 'createdAt'])"
+      }
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

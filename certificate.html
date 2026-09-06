@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Internship Certificate · Verified & Unlocked</title>
+  <meta name="description" content="View and download your official, verified internship certificate. Protected page accessible only upon server-verified payment.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Cinzel:wght@700;900&family=Montserrat:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.92) translateY(12px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .pop-in { animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    .pulse-soft { animation: pulseSoft 2.5s ease-in-out infinite; }
+
+    /* Print styling to export pristine Certificate */
+    @media print {
+      body { background: #ffffff !important; color: #000000 !important; margin: 0 !important; padding: 0 !important; }
+      header, .no-print { display: none !important; }
+      main { padding: 0 !important; max-width: none !important; width: 100% !important; }
+      #certificate-wrapper { padding: 0 !important; border: none !important; box-shadow: none !important; margin: 0 auto !important; }
+      .cert-paper { page-break-inside: avoid; box-shadow: none !important; border: 2px solid #1e3a8a !important; width: 100% !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white relative">
+
+  <!-- Header -->
+  <header class="no-print sticky top-0 z-40 backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 border-b border-slate-200/70 dark:border-slate-800/70">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-sm border border-slate-200/80 group-hover:scale-105 transition-transform">
+          <img src="assets/img/company-logo.png" id="header-logo" class="w-full h-full object-contain" alt="Raksude Logo">
+        </div>
+        <span id="header-brand-name" class="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">Raksude Technologies</span>
+      </a>
+
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+          Payment Verified
+        </span>
+        <a href="student.html" class="btn btn-outline btn-sm text-xs flex items-center gap-1.5">
+          Student Portal
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Access Loading State -->
+  <div id="loading-state" class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+    <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shadow-lg">
+      <svg class="w-7 h-7 animate-spin text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+    <div>
+      <h3 class="font-extrabold text-slate-900 dark:text-white text-lg">Verifying Payment & Certificate Security…</h3>
+      <p class="text-xs text-slate-400 mt-1">Connecting with the secure database to confirm payment status.</p>
+    </div>
+  </div>
+
+  <!-- ACCESS DENIED STATE (Shown if student hasn't paid or verified) -->
+  <div id="denied-state" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto space-y-5 pop-in">
+    <div class="w-16 h-16 rounded-3xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-2xl font-black shadow-lg shadow-rose-500/10">
+      🔒
+    </div>
+    <div>
+      <h2 class="text-2xl font-black text-slate-900 dark:text-white">Certificate Access Protected</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+        Certificate page access requires a verified payment status. You cannot view or download this certificate until your internship enrollment fee has been successfully paid and verified via Razorpay.
+      </p>
+    </div>
+    <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-xs text-amber-800 dark:text-amber-300 text-left space-y-1">
+      <p class="font-bold">Security Requirement:</p>
+      <p>• paymentStatus: <strong>paid</strong></p>
+      <p>• paymentVerified: <strong>true</strong></p>
+    </div>
+    <a href="razorpay.html" id="btn-redirect-pay" class="btn btn-primary w-full py-3 text-sm font-bold flex items-center justify-center gap-2">
+      Proceed to Payment &rarr;
+    </a>
+    <p class="text-[11px] text-slate-400">Redirecting to payment page automatically in <span id="countdown-timer">5</span> seconds…</p>
+  </div>
+
+  <!-- VERIFIED CERTIFICATE STATE (Shown when paymentVerified is true) -->
+  <main id="verified-state" class="hidden flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10 space-y-8 pop-in">
+
+    <!-- ═══ 1. PAYMENT SUCCESS CELEBRATION BANNER ═══ -->
+    <div class="no-print p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white shadow-2xl shadow-emerald-600/20 relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+        <div class="flex items-start gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-white text-emerald-600 flex items-center justify-center shrink-0 shadow-lg pulse-soft">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+          </div>
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 border border-white/25 text-white mb-1.5">
+              ⚡ PAYMENT SUCCESSFUL & VERIFIED
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Congratulations! Your Certificate is Ready 🎉</h1>
+            <p class="text-xs sm:text-sm text-emerald-100 mt-1 max-w-xl">
+              Your payment via Razorpay was securely verified by our backend server. Your internship completion has been officially certified.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2.5 w-full sm:w-auto">
+          <button type="button" id="btn-print-cert" class="btn bg-white text-slate-900 hover:bg-slate-100 font-extrabold text-xs px-5 py-3 rounded-xl flex items-center justify-center gap-2 shadow-md w-full sm:w-auto">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Download / Print PDF
+          </button>
+          <a href="#" id="btn-verify-cert" target="_blank" class="btn bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold text-xs px-4 py-3 rounded-xl flex items-center justify-center gap-2 w-full sm:w-auto">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+            Verify Online
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 2. METADATA DETAILS BAR ═══ -->
+    <div class="no-print grid grid-cols-2 md:grid-cols-4 gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-xs">
+      <div>
+        <span class="text-slate-400 font-medium block">Student Name</span>
+        <span class="font-extrabold text-slate-900 dark:text-white text-sm" id="meta-student-name">—</span>
+      </div>
+      <div>
+        <span class="text-slate-400 font-medium block">Course / Domain</span>
+        <span class="font-extrabold text-slate-900 dark:text-white text-sm" id="meta-course-name">—</span>
+      </div>
+      <div>
+        <span class="text-slate-400 font-medium block">Certificate ID</span>
+        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm" id="meta-cert-id">—</span>
+      </div>
+      <div>
+        <span class="text-slate-400 font-medium block">Payment ID (Razorpay)</span>
+        <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm truncate block" id="meta-payment-id">—</span>
+      </div>
+    </div>
+
+    <!-- ═══ 3. CERTIFICATE RENDER CONTAINER ═══ -->
+    <div id="certificate-wrapper" class="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 sm:p-6 shadow-2xl overflow-x-auto">
+      <div id="certificate-target" class="min-w-[780px] max-w-[960px] mx-auto">
+        <!-- Rendered Certificate HTML Injected Here -->
+      </div>
+    </div>
+
+    <!-- ═══ 4. BOTTOM ACTION BAR ═══ -->
+    <div class="no-print flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🎓</span>
+        <div>
+          <p class="font-bold text-slate-800 dark:text-slate-200">Share your achievement with your network</p>
+          <p class="text-slate-400">Add this certificate to your LinkedIn profile and resume.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 w-full sm:w-auto">
+        <a href="student.html" class="btn btn-outline text-xs px-4 py-2.5 flex-1 sm:flex-initial text-center">
+          Go to Student Portal
+        </a>
+        <button type="button" onclick="window.print()" class="btn btn-primary text-xs px-5 py-2.5 flex-1 sm:flex-initial flex items-center justify-center gap-1.5 font-bold">
+          Download Certificate
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { auth, db } from './assets/js/firebase-config.js';
+    import { signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+    import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+    import { getSettings, getStudent, createCertificate, getCertificate } from './assets/js/database.js';
+    import { certificateHtml } from './assets/js/certificate.js';
+    import { initTheme, toast } from './assets/js/utils.js';
+
+    initTheme();
+
+    const loadingState = document.getElementById('loading-state');
+    const deniedState  = document.getElementById('denied-state');
+    const verifiedState = document.getElementById('verified-state');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let studentId   = (urlParams.get('studentId') || '').trim().toUpperCase();
+    let paymentId   = (urlParams.get('paymentId') || '').trim();
+
+    // Trigger confetti animation on success
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 75, spread: 60, origin: { y: 0.6 } });
+        setTimeout(() => {
+          confetti({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0 } });
+          confetti({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1 } });
+        }, 300);
+      }
+    }
+
+    async function ensureAuth(sId) {
+      if (!auth) return;
+      let user = auth.currentUser;
+      if (!user) {
+        try {
+          const cred = await signInAnonymously(auth);
+          user = cred.user;
+        } catch (_) {}
+      }
+      if (user && sId && db) {
+        try {
+          await setDoc(doc(db, 'uid_map', user.uid), { studentId: sId }, { merge: true });
+        } catch (_) {}
+      }
+    }
+
+    async function checkAccessAndLoad() {
+      if (!studentId) {
+        // Try looking up from current auth user
+        if (auth?.currentUser) {
+          try {
+            const mapSnap = await getDoc(doc(db, 'uid_map', auth.currentUser.uid));
+            if (mapSnap.exists()) {
+              studentId = mapSnap.data().studentId;
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (!studentId) {
+        showAccessDenied();
+        return;
+      }
+
+      await ensureAuth(studentId);
+
+      let student = null;
+      let settings = {};
+      try {
+        [student, settings] = await Promise.all([
+          getStudent(studentId),
+          getSettings()
+        ]);
+      } catch (e) {
+        console.error('Data load error:', e);
+      }
+
+      if (!student) {
+        showAccessDenied();
+        return;
+      }
+
+      // ── CRITICAL SECURITY CHECK ──
+      // Students should NOT be able to manually open the certificate URL
+      // unless paymentStatus is "paid" and paymentVerified is true.
+      const isPaid = (student.paymentStatus === 'paid' || student.paymentStatus === 'PAID');
+      const isVerified = (student.paymentVerified === true || student.certificateStatus === 'UNLOCKED');
+
+      if (!isPaid || !isVerified) {
+        showAccessDenied(studentId);
+        return;
+      }
+
+      // ── ACCESS GRANTED: Generate / Fetch Certificate ──
+      loadingState.classList.add('hidden');
+      verifiedState.classList.remove('hidden');
+      triggerConfetti();
+
+      // Update Branding
+      const cName = settings.company?.name || 'Raksude Technologies';
+      document.getElementById('header-brand-name').textContent = cName;
+      if (settings.company?.logoUrl) {
+        document.getElementById('header-logo').src = settings.company.logoUrl;
+      }
+
+      // Metadata display
+      document.getElementById('meta-student-name').textContent = student.name || student.certificateName || 'Student';
+      document.getElementById('meta-course-name').textContent  = student.domainName || 'Internship Program';
+      document.getElementById('meta-payment-id').textContent   = paymentId || student.paymentId || 'Verified';
+
+      // Ensure Certificate ID exists or create one
+      let certId = student.certificateId;
+      if (!certId) {
+        try {
+          const newCert = await createCertificate(student, settings);
+          certId = newCert.certificateId;
+        } catch (ce) {
+          console.warn('Certificate create notice:', ce);
+        }
+      }
+
+      document.getElementById('meta-cert-id').textContent = certId || 'CERT-PENDING';
+
+      // Setup Online Verification Link
+      const verifyBtn = document.getElementById('btn-verify-cert');
+      if (certId) {
+        verifyBtn.href = `verify-certificate.html?id=${encodeURIComponent(certId)}`;
+      } else {
+        verifyBtn.classList.add('hidden');
+      }
+
+      // Render Certificate
+      if (certId) {
+        let certDoc = await getCertificate(certId);
+        if (!certDoc) {
+          // Fallback object if freshly created
+          certDoc = {
+            certificateId: certId,
+            name: student.name || student.certificateName,
+            domainName: student.domainName,
+            startDate: student.startDate,
+            endDate: student.endDate,
+            duration: student.duration || 30
+          };
+        }
+
+        const certHtmlStr = certificateHtml(certDoc, settings);
+        document.getElementById('certificate-target').innerHTML = certHtmlStr;
+      }
+
+      // Wire Print / Download Button
+      document.getElementById('btn-print-cert')?.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    function showAccessDenied(sId = '') {
+      loadingState.classList.add('hidden');
+      deniedState.classList.remove('hidden');
+
+      const redirectBtn = document.getElementById('btn-redirect-pay');
+      if (sId) {
+        redirectBtn.href = `razorpay.html?studentId=${encodeURIComponent(sId)}`;
+      }
+
+      let count = 5;
+      const countEl = document.getElementById('countdown-timer');
+      const interval = setInterval(() => {
+        count--;
+        if (countEl) countEl.textContent = count;
+        if (count <= 0) {
+          clearInterval(interval);
+          window.location.href = sId ? `razorpay.html?studentId=${encodeURIComponent(sId)}` : 'razorpay.html';
+        }
+      }, 1000);
+    }
+
+    checkAccessAndLoad();
+  </script>
+</body>
+</html>

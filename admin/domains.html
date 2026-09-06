@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Domains · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, confirmDialog, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, badge, exportCSV, toast } from '../assets/js/utils.js';
+import { listDomains, saveDomain, deleteDomain, listStudents } from '../assets/js/database.js';
+
+const content = document.getElementById('content');
+let domains = [], students = [];
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    [domains, students] = await Promise.all([
+      listDomains({ includeInactive: true }),
+      listStudents({ includeInactive: true })
+    ]);
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function studentCount(domainId) {
+  return students.filter(s => s.domainId === domainId).length;
+}
+
+function render() {
+  const rows = domains.map(d => {
+    const cnt = studentCount(d.id);
+    const weeks = d.weeks || 4;
+    return `<tr>
+      <td class="font-medium">${esc(d.name)}</td>
+      <td>${d.duration || 30} days</td>
+      <td class="text-center"><span class="badge badge-blue">${weeks} week${weeks > 1 ? 's' : ''}</span></td>
+      <td>${cnt}</td>
+      <td>${badge(d.status || 'ACTIVE')}</td>
+      <td class="space-x-1 whitespace-nowrap">
+        <button class="btn btn-outline btn-sm" data-edit="${esc(d.id)}">Edit</button>
+        <button class="btn btn-outline btn-sm" data-toggle="${esc(d.id)}">${d.status === 'INACTIVE' ? 'Activate' : 'Deactivate'}</button>
+        <button class="btn btn-danger btn-sm" data-del="${esc(d.id)}">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">Domains</h2>
+      <div class="flex gap-2">
+        <button id="add-btn" class="btn btn-primary">+ Add Domain</button>
+        <button id="export-btn" class="btn btn-outline">Export CSV</button>
+      </div>
+    </div>
+    <div class="card overflow-x-auto">
+      ${domains.length ? `<table class="table">
+        <thead><tr><th>Name</th><th>Duration</th><th>Weeks</th><th>Students</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No domains yet. Click "Add Domain" to create one.')}
+    </div>`;
+
+  document.getElementById('add-btn').onclick = () => openModal();
+  document.getElementById('export-btn').onclick = () => {
+    if (!domains.length) return toast('No data to export', 'error');
+    exportCSV('domains.csv', domains.map(d => ({
+      ID: d.id, Name: d.name, Duration: d.duration, Weeks: d.weeks || 4, Status: d.status,
+      Students: studentCount(d.id), ShortDescription: d.shortDescription || ''
+    })));
+  };
+
+  content.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openModal(domains.find(d => d.id === b.dataset.edit)));
+  content.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    const d = domains.find(d => d.id === b.dataset.toggle);
+    const newStatus = d.status === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE';
+    try {
+      await saveDomain({ status: newStatus }, d.id);
+      toast(`Domain ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'}`, 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); }
+  });
+  content.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const d = domains.find(d => d.id === b.dataset.del);
+    const cnt = studentCount(d.id);
+    const warn = cnt > 0 ? ` This domain has ${cnt} student(s). Deleting may cause issues.` : '';
+    const ok = await confirmDialog(`Delete domain "${d.name}"?${warn}`, { danger: true });
+    if (!ok) return;
+    try {
+      await deleteDomain(d.id);
+      toast('Domain deleted', 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); }
+  });
+}
+
+function openModal(domain = null) {
+  const isEdit = !!domain;
+  const d = domain || {};
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal">
+      <div class="modal-head"><h3>${isEdit ? 'Edit' : 'Add'} Domain</h3><button class="icon-btn" id="m-close">✕</button></div>
+      <div class="modal-body space-y-4">
+        <div><label class="label">Name</label><input class="input" id="f-name" value="${esc(d.name || '')}"></div>
+        <div><label class="label">Short Description</label><input class="input" id="f-short" value="${esc(d.shortDescription || '')}"></div>
+        <div><label class="label">Description</label><textarea class="input" id="f-desc" rows="3">${esc(d.description || '')}</textarea></div>
+        <div><label class="label">Duration (days)</label><input class="input" id="f-dur" type="number" min="1" value="${d.duration || 30}"></div>
+        <div>
+          <label class="label">Number of Weeks <span class="text-xs text-slate-400 font-normal">(How many task weeks does this domain have?)</span></label>
+          <select class="input" id="f-weeks">
+            <option value="1" ${(d.weeks || 4) == 1 ? 'selected' : ''}>1 Week</option>
+            <option value="2" ${(d.weeks || 4) == 2 ? 'selected' : ''}>2 Weeks</option>
+            <option value="3" ${(d.weeks || 4) == 3 ? 'selected' : ''}>3 Weeks</option>
+            <option value="4" ${(d.weeks || 4) == 4 ? 'selected' : ''}>4 Weeks (Default)</option>
+          </select>
+        </div>
+        <div><label class="label">Benefits (one per line)</label><textarea class="input" id="f-ben" rows="3">${(d.benefits || []).join('\n')}</textarea></div>
+        <div><label class="label">Skills (comma-separated)</label><input class="input" id="f-skills" value="${(d.skills || []).join(', ')}"></div>
+        <div><label class="label">Offer Letter URL</label><input class="input" id="f-offer" value="${esc(d.offerLetterUrl || '')}"></div>
+        <div><label class="label">Status</label><select class="input" id="f-status">
+          <option value="ACTIVE" ${(d.status || 'ACTIVE') === 'ACTIVE' ? 'selected' : ''}>Active</option>
+          <option value="INACTIVE" ${d.status === 'INACTIVE' ? 'selected' : ''}>Inactive</option>
+        </select></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline btn-sm" id="m-cancel">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="m-save">${isEdit ? 'Update' : 'Create'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  const close = () => wrap.remove();
+  wrap.querySelector('#m-close').onclick = close;
+  wrap.querySelector('#m-cancel').onclick = close;
+  wrap.querySelector('.modal-backdrop').onclick = close;
+
+  const durInput = wrap.querySelector('#f-dur');
+  const weeksSelect = wrap.querySelector('#f-weeks');
+  weeksSelect.onchange = () => {
+    const w = Number(weeksSelect.value) || 4;
+    if (w === 1) durInput.value = 7;
+    else if (w === 2) durInput.value = 14;
+    else if (w === 3) durInput.value = 21;
+    else if (w === 4 && (durInput.value === '7' || durInput.value === '14' || durInput.value === '21')) durInput.value = 30;
+  };
+  durInput.oninput = () => {
+    const dVal = Number(durInput.value) || 0;
+    if (dVal > 0) {
+      const calcW = Math.min(4, Math.max(1, Math.ceil(dVal / 7)));
+      weeksSelect.value = String(calcW);
+    }
+  };
+
+  wrap.querySelector('#m-save').onclick = async () => {
+    const name = wrap.querySelector('#f-name').value.trim();
+    if (!name) return toast('Name is required', 'error');
+    const benefits = wrap.querySelector('#f-ben').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const skills = wrap.querySelector('#f-skills').value.split(',').map(s => s.trim()).filter(Boolean);
+    const data = {
+      name,
+      shortDescription: wrap.querySelector('#f-short').value.trim(),
+      description: wrap.querySelector('#f-desc').value.trim(),
+      duration: Number(wrap.querySelector('#f-dur').value) || 30,
+      weeks: Number(wrap.querySelector('#f-weeks').value) || 4,
+      benefits, skills,
+      offerLetterUrl: wrap.querySelector('#f-offer').value.trim(),
+      status: wrap.querySelector('#f-status').value,
+      createdAt: d.createdAt || Date.now()
+    };
+    const saveBtn = wrap.querySelector('#m-save');
+    saveBtn.disabled = true;
+    try {
+      const id = isEdit ? d.id : 'domain_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      await saveDomain(data, id);
+      toast(isEdit ? 'Domain updated' : 'Domain created', 'success');
+      close();
+      await load();
+    } catch (e) { toast(e.message, 'error'); saveBtn.disabled = false; }
+  };
+}
+
+const { user, settings } = await initAdminPage('domains');
+await load();
+</script>
+</body>
+</html>

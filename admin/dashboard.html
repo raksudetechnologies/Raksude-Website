@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+  <div id="content" class="p-4 md:p-8"></div>
+
+  <script type="module">
+    import { initAdminPage } from '../assets/js/admin.js';
+    import { esc, badge, fmtTs, money, todayStr, addDays, calcInternship, debounce } from '../assets/js/utils.js';
+    import { listStudents, listApplications, listPayments, listSubmissions, listTasks, listFeedback, getActivity, getSettings } from '../assets/js/database.js';
+
+    const { user, settings } = await initAdminPage('dashboard');
+    const content = document.getElementById('content');
+    content.innerHTML = '<div class="loading">Loading dashboard…</div>';
+
+    try {
+      const [students, applications, payments, submissions, tasks, feedback, activity] = await Promise.all([
+        listStudents({ includeInactive: true }),
+        listApplications(),
+        listPayments(),
+        listSubmissions(),
+        listTasks({ includeInactive: true }),
+        listFeedback(),
+        getActivity(15)
+      ]);
+
+      // --- Compute stats ---
+      const totalStudents = students.filter(s => s.active !== false).length;
+      const pendingApps = applications.filter(a => a.status === 'PENDING').length;
+      const totalRevenue = payments
+        .filter(p => p.status === 'PAID' || p.status === 'APPROVED')
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const pendingQr = payments.filter(p => p.method === 'QR' && p.status === 'PENDING').length;
+      const activeInternships = students.filter(s => s.startDate && calcInternship(s.startDate, s.duration || 30).status === 'ACTIVE').length;
+      const completedInternships = students.filter(s => s.startDate && calcInternship(s.startDate, s.duration || 30).status === 'COMPLETED').length;
+      const certsIssued = students.filter(s => s.certificateStatus === 'UNLOCKED').length;
+      const avgRating = feedback.length
+        ? (feedback.reduce((s, f) => s + Number(f.rating || 0), 0) / feedback.length).toFixed(1)
+        : '—';
+
+      // --- Global search ---
+      const searchResults = (q) => {
+        if (!q || q.length < 2) return [];
+        const ql = q.toLowerCase();
+        const results = [];
+        for (const s of students) {
+          if ([s.studentId, s.name, s.email, s.phone].some(v => String(v || '').toLowerCase().includes(ql))) {
+            results.push({ type: 'student', id: s.studentId, label: `${esc(s.name)} (${esc(s.studentId)})`, href: `students.html?search=${encodeURIComponent(q)}` });
+          }
+          if (results.length >= 4) break;
+        }
+        for (const a of applications) {
+          if ([a.appId, a.personal?.fullName, a.personal?.email, a.personal?.phone].some(v => String(v || '').toLowerCase().includes(ql))) {
+            results.push({ type: 'application', id: a.appId, label: `${esc(a.personal?.fullName || '')} (${esc(a.appId)})`, href: `applications.html?search=${encodeURIComponent(q)}` });
+          }
+          if (results.length >= 8) break;
+        }
+        return results.slice(0, 8);
+      };
+
+      // --- Chart data helpers ---
+      const last14Days = () => {
+        const days = [];
+        for (let i = 13; i >= 0; i--) days.push(addDays(todayStr(), -i));
+        return days;
+      };
+      const days14 = last14Days();
+      const dayLabels = days14.map(d => { const dt = new Date(d); return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }); });
+
+      // Revenue by day
+      const revenueByDay = days14.map(() => 0);
+      payments.forEach(p => {
+        if (p.status !== 'PAID' && p.status !== 'APPROVED') return;
+        const d = p.createdAt ? new Date(p.createdAt).toISOString().slice(0, 10) : '';
+        const idx = days14.indexOf(d);
+        if (idx >= 0) revenueByDay[idx] += Number(p.amount || 0);
+      });
+
+      // Registrations by day
+      const regByDay = days14.map(() => 0);
+      students.forEach(s => {
+        const d = s.createdAt ? new Date(s.createdAt).toISOString().slice(0, 10) : '';
+        const idx = days14.indexOf(d);
+        if (idx >= 0) regByDay[idx]++;
+      });
+
+      // Domain-wise students
+      const domainMap = {};
+      students.filter(s => s.active !== false).forEach(s => {
+        const dn = s.domainName || 'Unknown';
+        domainMap[dn] = (domainMap[dn] || 0) + 1;
+      });
+
+      // Payment method split
+      const qrCount = payments.filter(p => p.method === 'QR').length;
+      const rzCount = payments.filter(p => p.method === 'RAZORPAY').length;
+
+      // Payment status from students
+      const payStatusCounts = { PAID: 0, PENDING: 0, NOT_PAID: 0, REJECTED: 0 };
+      students.forEach(s => { if (payStatusCounts.hasOwnProperty(s.paymentStatus)) payStatusCounts[s.paymentStatus]++; });
+
+      // Task pipeline
+      const totalTaskCount = tasks.length;
+      const submittedIds = new Set(submissions.map(s => s.taskId));
+      const completedSubs = submissions.filter(s => s.status === 'COMPLETED').length;
+      const submittedOnly = submissions.filter(s => s.status === 'SUBMITTED').length;
+
+      // Dark mode chart colors
+      const isDark = document.documentElement.classList.contains('dark');
+      Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+      Chart.defaults.borderColor = isDark ? '#334155' : '#e2e8f0';
+
+      // --- Render HTML ---
+      content.innerHTML = `
+        <!-- Global Search -->
+        <div class="relative mb-6 max-w-lg">
+          <input id="global-search" type="text" class="input pl-10" placeholder="Search students & applications…">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <div id="search-dropdown" class="hidden absolute z-50 mt-1 w-full card shadow-xl border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden"></div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+          ${statCard('Total Students', totalStudents, 'indigo')}
+          ${statCard('Applications', `${applications.length}`, 'blue', `${pendingApps} pending`)}
+          ${statCard('Total Revenue', money(totalRevenue), 'green')}
+          ${statCard('Pending QR', pendingQr, 'amber')}
+          ${statCard('Active Internships', activeInternships, 'emerald')}
+          ${statCard('Completed', completedInternships, 'teal')}
+          ${statCard('Certificates Issued', certsIssued, 'purple')}
+          ${statCard('Avg Feedback', avgRating, 'pink', avgRating !== '—' ? 'out of 5' : '')}
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+          <div class="card p-5"><h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Revenue (Last 14 Days)</h3><canvas id="chart-revenue"></canvas></div>
+          <div class="card p-5"><h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Registrations (Last 14 Days)</h3><canvas id="chart-reg"></canvas></div>
+          <div class="card p-5"><h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Domain-wise Students</h3><canvas id="chart-domain"></canvas></div>
+          <div class="card p-5"><h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Payment Methods</h3><canvas id="chart-method"></canvas></div>
+          <div class="card p-5"><h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Payment Status</h3><canvas id="chart-paystatus"></canvas></div>
+          <div class="card p-5"><h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Task Pipeline</h3><canvas id="chart-tasks"></canvas></div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="card p-5">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4">Recent Activity</h3>
+          ${activity.length ? `<div class="space-y-3">${activity.map(a => `
+            <div class="flex items-start gap-3 text-sm">
+              <span class="mt-0.5 inline-block h-2 w-2 rounded-full bg-indigo-500 shrink-0"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-slate-700 dark:text-slate-200 truncate">${esc(a.text)}</p>
+                <p class="text-xs text-slate-400">${timeAgo(a.createdAt)}</p>
+              </div>
+            </div>`).join('')}</div>`
+            : '<p class="text-sm text-slate-400">No recent activity.</p>'}
+        </div>
+      `;
+
+      // --- Wire search ---
+      const searchInput = document.getElementById('global-search');
+      const dropdown = document.getElementById('search-dropdown');
+      searchInput?.addEventListener('input', debounce(() => {
+        const q = searchInput.value.trim();
+        const results = searchResults(q);
+        if (!results.length) { dropdown?.classList.add('hidden'); return; }
+        if (dropdown) {
+          dropdown.innerHTML = results.map(r =>
+            `<a href="${r.href}" class="block px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-700 last:border-0">
+              <span class="badge badge-${r.type === 'student' ? 'blue' : 'amber'} mr-2">${r.type}</span>${r.label}
+            </a>`
+          ).join('');
+          dropdown.classList.remove('hidden');
+        }
+      }, 200));
+      document.addEventListener('click', (e) => { if (dropdown && !e.target.closest('#global-search') && !e.target.closest('#search-dropdown')) dropdown.classList.add('hidden'); });
+
+      // --- Render charts ---
+      const palette = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+
+      new Chart(document.getElementById('chart-revenue'), {
+        type: 'line',
+        data: { labels: dayLabels, datasets: [{ label: 'Revenue (₹)', data: revenueByDay, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.1)', fill: true, tension: .3 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+
+      new Chart(document.getElementById('chart-reg'), {
+        type: 'line',
+        data: { labels: dayLabels, datasets: [{ label: 'Registrations', data: regByDay, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.1)', fill: true, tension: .3 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      });
+
+      const domainLabels = Object.keys(domainMap);
+      new Chart(document.getElementById('chart-domain'), {
+        type: 'doughnut',
+        data: { labels: domainLabels, datasets: [{ data: Object.values(domainMap), backgroundColor: palette.slice(0, domainLabels.length) }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+      });
+
+      new Chart(document.getElementById('chart-method'), {
+        type: 'doughnut',
+        data: { labels: ['QR', 'Razorpay'], datasets: [{ data: [qrCount, rzCount], backgroundColor: ['#6366f1', '#f59e0b'] }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+      });
+
+      new Chart(document.getElementById('chart-paystatus'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(payStatusCounts),
+          datasets: [{ label: 'Students', data: Object.values(payStatusCounts), backgroundColor: ['#059669','#f59e0b','#94a3b8','#e11d48'] }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      });
+
+      new Chart(document.getElementById('chart-tasks'), {
+        type: 'bar',
+        data: {
+          labels: ['Total Tasks', 'Submitted', 'Completed'],
+          datasets: [{ label: 'Count', data: [totalTaskCount, submittedOnly + completedSubs, completedSubs], backgroundColor: ['#6366f1','#3b82f6','#10b981'] }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      });
+
+    } catch (err) {
+      content.innerHTML = `<div class="py-10 text-center text-rose-500 text-sm">Error loading dashboard: ${esc(err.message || err)}</div>`;
+      console.error(err);
+    }
+
+    // --- Helpers ---
+    function statCard(label, value, color, sub) {
+      const colors = {
+        indigo: 'from-indigo-500 to-indigo-600', blue: 'from-blue-500 to-blue-600',
+        green: 'from-emerald-500 to-emerald-600', amber: 'from-amber-500 to-amber-600',
+        emerald: 'from-teal-500 to-teal-600', teal: 'from-cyan-500 to-cyan-600',
+        purple: 'from-purple-500 to-purple-600', pink: 'from-pink-500 to-pink-600'
+      };
+      return `<div class="card p-4 flex flex-col">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">${esc(label)}</p>
+        <p class="text-2xl font-extrabold bg-gradient-to-r ${colors[color] || colors.indigo} bg-clip-text text-transparent">${esc(String(value))}</p>
+        ${sub ? `<p class="text-xs text-slate-400 mt-1">${esc(sub)}</p>` : ''}
+      </div>`;
+    }
+
+    function timeAgo(ms) {
+      if (!ms) return '';
+      const diff = Math.floor((Date.now() - ms) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return `${Math.floor(diff / 86400)}d ago`;
+    }
+  </script>
+</body>
+</html>

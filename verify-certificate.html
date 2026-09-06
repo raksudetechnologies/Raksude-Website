@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Certificate — Internship Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased min-h-screen flex flex-col">
+
+  <div id="nav"></div>
+
+  <!-- Page Header -->
+  <section class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white py-12 md:py-16">
+    <div class="max-w-4xl mx-auto px-6 text-center" data-aos="fade-up">
+      <h1 class="text-3xl md:text-4xl font-extrabold mb-3">Certificate Verification</h1>
+      <p class="text-emerald-100 text-lg">Enter a certificate ID to verify its authenticity.</p>
+    </div>
+  </section>
+
+  <main class="flex-1 max-w-2xl mx-auto px-6 py-16 w-full">
+    <!-- Search Form -->
+    <div class="card p-8 mb-8" data-aos="fade-up">
+      <form id="verifyForm" class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+          <input type="text" id="certIdInput" required placeholder="Enter Certificate ID (e.g. CERT-2026-000001)" class="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 pr-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition font-mono text-sm">
+        </div>
+        <button type="submit" id="verifyBtn" class="px-8 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition shadow-lg whitespace-nowrap">Verify</button>
+      </form>
+    </div>
+
+    <!-- Result Container -->
+    <div id="resultContainer" class="hidden" data-aos="fade-up">
+      <!-- Valid Certificate -->
+      <div id="validResult" class="hidden card overflow-hidden">
+        <div class="bg-green-600 text-white px-6 py-4 flex items-center gap-3">
+          <i data-lucide="shield-check" class="w-8 h-8"></i>
+          <div>
+            <h2 class="text-xl font-bold">Certificate Verified</h2>
+            <p class="text-green-100 text-sm">This certificate is authentic and valid.</p>
+          </div>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Certificate ID</label>
+              <p id="vCertId" class="font-mono font-bold text-indigo-600 dark:text-indigo-400"></p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Status</label>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-sm font-bold"><i data-lucide="check-circle-2" class="w-4 h-4"></i> VALID</span>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Student Name</label>
+              <p id="vStudentName" class="font-semibold"></p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Domain</label>
+              <p id="vDomain" class="font-semibold"></p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Internship Period</label>
+              <p id="vPeriod" class="font-semibold"></p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Issue Date</label>
+              <p id="vIssueDate" class="font-semibold"></p>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Issued By</label>
+              <p id="vCompany" class="font-semibold"></p>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-2.5">
+            <button id="btnToggleCertDoc" type="button" class="btn btn-primary btn-sm flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-4 h-4"></i> <span>View Official Certificate</span>
+            </button>
+            <button id="btnCopyVerifyLink" type="button" class="btn btn-outline btn-sm flex items-center gap-1.5">
+              <i data-lucide="copy" class="w-4 h-4"></i> <span id="copyVerifyText">Copy Verification Link</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inline Certificate Preview -->
+        <div id="vCertPreviewContainer" class="hidden border-t border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-900/60 p-4 sm:p-6">
+          <p class="text-xs text-slate-500 dark:text-slate-400 text-center mb-3">Swipe or scroll horizontally if viewing on a mobile device</p>
+          <div class="w-full paper-scroll-wrapper flex justify-start lg:justify-center">
+            <div id="vCertRender"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invalid Certificate -->
+      <div id="invalidResult" class="hidden card p-8 text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600">
+          <i data-lucide="shield-x" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-red-600 mb-2">Invalid Certificate ID</h2>
+        <p class="text-gray-600 dark:text-gray-300">No certificate was found with the provided ID. Please check the ID and try again.</p>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script type="module">
+    import { esc, fmtDate, qs, toast } from './assets/js/utils.js';
+    import { getCertificate, getSettings } from './assets/js/database.js';
+    import { applyPublicChrome } from './assets/js/settings.js';
+    import { certificateHtml } from './assets/js/certificate.js';
+
+    let settings = null;
+    let currentLoadedCert = null;
+
+    (async () => {
+      AOS.init({ duration: 700, once: true });
+      lucide.createIcons();
+      try { settings = await applyPublicChrome('verify-certificate'); } catch(e) { console.error(e); }
+
+      // Check for cert ID in URL
+      const certParam = qs('id') || qs('cert');
+      if (certParam) {
+        document.getElementById('certIdInput').value = certParam;
+        verifyCertificate(certParam);
+      }
+
+      // Wire preview toggle
+      document.getElementById('btnToggleCertDoc')?.addEventListener('click', () => {
+        const previewWrap = document.getElementById('vCertPreviewContainer');
+        const renderEl = document.getElementById('vCertRender');
+        if (!previewWrap || !currentLoadedCert) return;
+
+        if (previewWrap.classList.contains('hidden')) {
+          renderEl.innerHTML = certificateHtml(currentLoadedCert, settings);
+          previewWrap.classList.remove('hidden');
+          document.getElementById('btnToggleCertDoc').querySelector('span').textContent = 'Hide Certificate Preview';
+        } else {
+          previewWrap.classList.add('hidden');
+          document.getElementById('btnToggleCertDoc').querySelector('span').textContent = 'View Official Certificate';
+        }
+      });
+
+      // Wire copy link
+      document.getElementById('btnCopyVerifyLink')?.addEventListener('click', async () => {
+        const certId = document.getElementById('vCertId').textContent;
+        const link = `${location.origin}${location.pathname}?id=${encodeURIComponent(certId)}`;
+        try {
+          await navigator.clipboard.writeText(link);
+          const lbl = document.getElementById('copyVerifyText');
+          if (lbl) lbl.textContent = 'Link Copied!';
+          toast('Verification link copied to clipboard!', 'success');
+          setTimeout(() => { if (lbl) lbl.textContent = 'Copy Verification Link'; }, 3000);
+        } catch {
+          toast('Could not copy link.', 'warning');
+        }
+      });
+    })();
+
+    document.getElementById('verifyForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('certIdInput').value.trim();
+      if (id) verifyCertificate(id);
+    });
+
+    async function verifyCertificate(id) {
+      const container = document.getElementById('resultContainer');
+      const validDiv = document.getElementById('validResult');
+      const invalidDiv = document.getElementById('invalidResult');
+      const btn = document.getElementById('verifyBtn');
+      const previewWrap = document.getElementById('vCertPreviewContainer');
+      if (previewWrap) previewWrap.classList.add('hidden');
+
+      container.classList.remove('hidden');
+      validDiv.classList.add('hidden');
+      invalidDiv.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+
+      try {
+        const cert = await getCertificate(id);
+        if (!cert) {
+          currentLoadedCert = null;
+          invalidDiv.classList.remove('hidden');
+        } else {
+          currentLoadedCert = cert;
+          document.getElementById('vCertId').textContent = cert.id || id;
+          document.getElementById('vStudentName').textContent = cert.studentName || cert.name || 'N/A';
+          document.getElementById('vDomain').textContent = cert.domainName || cert.domain || 'N/A';
+
+          const startStr = cert.startDate ? fmtDate(cert.startDate) : '';
+          const endStr = cert.endDate ? fmtDate(cert.endDate) : '';
+          const durStr = cert.duration ? ` (${cert.duration} days)` : '';
+          document.getElementById('vPeriod').textContent = startStr && endStr ? `${startStr} — ${endStr}${durStr}` : 'N/A';
+
+          document.getElementById('vIssueDate').textContent = cert.issueDate ? fmtDate(cert.issueDate) : (cert.createdAt ? fmtDate(typeof cert.createdAt === 'number' ? '' : cert.createdAt) : 'N/A');
+          if (cert.createdAt && typeof cert.createdAt.toDate === 'function') {
+            document.getElementById('vIssueDate').textContent = cert.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
+
+          const companyName = settings?.company?.name || 'Raksude Tech';
+          document.getElementById('vCompany').textContent = companyName;
+
+          validDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error(err);
+        invalidDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify';
+        lucide.createIcons();
+      }
+    }
+  </script>
+</body>
+</html>

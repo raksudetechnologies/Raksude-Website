@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+  <div id="content" class="p-4 md:p-8"></div>
+
+  <script type="module">
+    import { initAdminPage, confirmDialog, loadingBlock, emptyBlock } from '../assets/js/admin.js';
+    import { esc, badge, fmtDate, fmtTs, todayStr, addDays, calcInternship, exportCSV, qs, debounce, toast, sendEmail, loadScript } from '../assets/js/utils.js';
+    import { listStudents, saveStudent, createStudentManual, listDomains, listTasks, listSubmissions, recordManualPayment, listApplications, approveApplication } from '../assets/js/database.js';
+    import { createLmsAccount, resetPasswordEmail } from '../assets/js/auth.js';
+
+    const { user, settings } = await initAdminPage('students');
+    const content = document.getElementById('content');
+
+    let allStudents = [];
+    let domains = [];
+    let showInactive = false;
+    let searchTerm = qs('search') || '';
+
+    async function syncPendingApplications() {
+      try {
+        const apps = await listApplications();
+        const toSync = apps.filter(a => a.status === 'PENDING' || !a.studentId || !allStudents.some(s => s.studentId === a.studentId));
+        if (toSync.length > 0) {
+          for (const app of toSync) {
+            try { await approveApplication(app); } catch (_) {}
+          }
+          allStudents = await listStudents({ includeInactive: true });
+        }
+      } catch (err) {
+        console.warn('Sync applications note:', err);
+      }
+    }
+
+    // Initial render
+    content.innerHTML = loadingBlock();
+    try {
+      [allStudents, domains] = await Promise.all([
+        listStudents({ includeInactive: true }),
+        listDomains({ includeInactive: true })
+      ]);
+      await syncPendingApplications();
+      renderPage();
+    } catch (e) {
+      content.innerHTML = `<div class="py-10 text-center text-rose-500 text-sm">Error: ${esc(e.message || e)}</div>`;
+    }
+
+    async function refresh() {
+      content.innerHTML = loadingBlock();
+      try {
+        allStudents = await listStudents({ includeInactive: true });
+        await syncPendingApplications();
+        renderPage();
+      } catch (e) {
+        content.innerHTML = `<div class="py-10 text-center text-rose-500 text-sm">Error: ${esc(e.message || e)}</div>`;
+      }
+    }
+
+    function filtered() {
+      let rows = showInactive ? allStudents : allStudents.filter(s => s.active !== false);
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        rows = rows.filter(s => [s.studentId, s.name, s.email, s.phone].some(v => String(v || '').toLowerCase().includes(q)));
+      }
+      return rows;
+    }
+
+    function renderPage() {
+      const rows = filtered();
+      content.innerHTML = `
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input id="search-input" type="text" class="input max-w-xs" placeholder="Search ID / name / email / phone…" value="${esc(searchTerm)}">
+          <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+            <input id="inactive-toggle" type="checkbox" class="rounded border-slate-300" ${showInactive ? 'checked' : ''}> Show inactive
+          </label>
+          <div class="ml-auto flex gap-2">
+            <button id="add-btn" class="btn btn-primary btn-sm">+ Add Student</button>
+            <button id="export-btn" class="btn btn-outline btn-sm">Export CSV</button>
+          </div>
+        </div>
+        <div class="card overflow-x-auto">
+          ${rows.length ? `<table class="table">
+            <thead><tr>
+              <th>Student ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Domain</th>
+              <th>Start</th><th>End</th><th>Payment</th><th>Internship</th><th>Certificate</th><th>LMS</th><th>Actions</th>
+            </tr></thead>
+            <tbody>${rows.map(s => {
+              const intern = s.startDate ? calcInternship(s.startDate) : null;
+              return `<tr>
+                <td class="font-mono text-xs">${esc(s.studentId)}</td>
+                <td class="font-medium">${esc(s.name)}</td>
+                <td class="text-xs">${esc(s.email)}</td>
+                <td class="text-xs">${esc(s.phone)}</td>
+                <td class="text-xs">${esc(s.domainName)}</td>
+                <td class="text-xs whitespace-nowrap">${fmtDate(s.startDate)}</td>
+                <td class="text-xs whitespace-nowrap">${fmtDate(s.endDate)}</td>
+                <td>${badge(s.paymentStatus)}</td>
+                <td>${intern ? badge(intern.status) : badge('NOT_STARTED')}</td>
+                <td>${badge(s.certificateStatus || 'LOCKED')}</td>
+                <td>${s.lms ? badge('ACTIVE') : '<span class="badge badge-gray">NONE</span>'}</td>
+                <td class="whitespace-nowrap">
+                  <div class="flex gap-1">
+                    <button class="btn btn-outline btn-sm act-view" data-id="${esc(s.studentId)}">View</button>
+                    <button class="btn btn-outline btn-sm act-edit" data-id="${esc(s.studentId)}">Edit</button>
+                    <button class="btn btn-outline btn-sm act-pay" data-id="${esc(s.studentId)}">Pay</button>
+                    <button class="btn btn-outline btn-sm act-keys" data-id="${esc(s.studentId)}">Keys</button>
+                    <button class="btn btn-outline btn-sm act-toggle" data-id="${esc(s.studentId)}">${s.active !== false ? 'Disable' : 'Enable'}</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>` : emptyBlock('No students found.')}
+        </div>`;
+
+      // Wire events (safe with optional chaining)
+      document.getElementById('search-input')?.addEventListener('input', debounce((e) => {
+        searchTerm = e.target.value.trim();
+        renderPage();
+      }, 250));
+      document.getElementById('inactive-toggle')?.addEventListener('change', (e) => {
+        showInactive = e.target.checked;
+        renderPage();
+      });
+      document.getElementById('add-btn')?.addEventListener('click', () => openAddModal());
+      document.getElementById('export-btn')?.addEventListener('click', () => {
+        const r = filtered();
+        exportCSV('students.csv', r.map(s => ({
+          studentId: s.studentId, name: s.name, email: s.email, phone: s.phone,
+          domain: s.domainName, startDate: s.startDate, endDate: s.endDate,
+          paymentStatus: s.paymentStatus, certificateStatus: s.certificateStatus, active: s.active !== false
+        })));
+      });
+
+      content.querySelectorAll('.act-view').forEach(b => b.addEventListener('click', () => openViewModal(b.dataset.id)));
+      content.querySelectorAll('.act-edit').forEach(b => b.addEventListener('click', () => openEditModal(b.dataset.id)));
+      content.querySelectorAll('.act-pay').forEach(b => b.addEventListener('click', () => openPaymentModal(b.dataset.id)));
+      content.querySelectorAll('.act-keys').forEach(b => b.addEventListener('click', () => openKeysModal(b.dataset.id)));
+      content.querySelectorAll('.act-toggle').forEach(b => b.addEventListener('click', () => toggleActive(b.dataset.id)));
+    }
+
+    // ---- Domain select HTML ----
+    function domainOptions(selectedId) {
+      return `<option value="">— Select Domain —</option>` +
+        domains.map(d => `<option value="${esc(d.id)}" data-name="${esc(d.name)}" data-duration="${d.duration || 30}" ${d.id === selectedId ? 'selected' : ''}>${esc(d.name)} (${d.duration || 30} days)</option>`).join('');
+    }
+
+    // ---- ADD / EDIT MODAL ----
+    function openAddModal() {
+      showModal('Add Student', studentFormHtml({}, false), async (form) => {
+        const data = readForm(form);
+        if (!data.name || !data.email) { toast('Name and email are required', 'error'); return false; }
+        const btn = form.closest('.modal').querySelector('[data-action="save"]');
+        btn.disabled = true; btn.textContent = 'Creating…';
+        try {
+          const student = await createStudentManual(data);
+          // Auto-create LMS credential from application data (email = username, mobile = password).
+          const mobile = String(student.phone || '').replace(/\D/g, '');
+          if (student.email && mobile) {
+            try { await createLmsAccount(student, String(student.email).trim().toLowerCase(), mobile); }
+            catch (le) { console.warn('LMS account not auto-created', le); }
+          }
+          toast('Student created', 'success');
+          await refresh();
+          return true;
+        } catch (e) { toast(e.message || 'Failed', 'error'); btn.disabled = false; btn.textContent = 'Create'; return false; }
+      }, 'Create');
+    }
+
+    function openEditModal(id) {
+      const s = allStudents.find(x => x.studentId === id);
+      if (!s) return;
+      showModal('Edit Student', studentFormHtml(s, true), async (form) => {
+        const data = readForm(form);
+        const btn = form.closest('.modal').querySelector('[data-action="save"]');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          await saveStudent(id, data);
+          toast('Student updated', 'success');
+          await refresh();
+          return true;
+        } catch (e) { toast(e.message || 'Failed', 'error'); btn.disabled = false; btn.textContent = 'Save'; return false; }
+      }, 'Save');
+    }
+
+    function openPaymentModal(id) {
+      const s = allStudents.find(x => x.studentId === id);
+      if (!s) return;
+      const defaultAmount = s.feeAmount != null ? Number(s.feeAmount) : Number(settings.payment?.amount || 0);
+      showModal('Record Manual Payment — ' + s.studentId, `
+        <form class="space-y-3" id="payment-form">
+          <p class="text-sm text-slate-600 dark:text-slate-300">${esc(s.name)} · current status: ${esc(s.paymentStatus || 'NOT_PAID')}</p>
+          <div><label class="label">Amount Paid *</label><input name="amount" type="number" class="input" required value="${defaultAmount}"></div>
+          <div><label class="label">Method</label><select name="method" class="input">
+            <option value="MANUAL">Manual / Offline</option>
+            <option value="CASH">Cash</option>
+            <option value="UPI">UPI (verified offline)</option>
+            <option value="BANK">Bank Transfer</option>
+          </select></div>
+          <div><label class="label">Reference / Note</label><input name="note" class="input" placeholder="Receipt no., txn ref, etc. (optional)"></div>
+        </form>`, async (form) => {
+        const amount = Number(form.amount.value);
+        if (!amount || amount <= 0) { toast('Enter a valid amount', 'error'); return false; }
+        const btn = form.closest('.modal').querySelector('[data-action="save"]');
+        btn.disabled = true; btn.textContent = 'Recording…';
+        try {
+          await recordManualPayment(s, { amount, method: form.method.value, note: form.note.value.trim() });
+          toast('Payment recorded — student marked PAID', 'success');
+          await refresh();
+          return true;
+        } catch (e) { toast(e.message || 'Failed', 'error'); btn.disabled = false; btn.textContent = 'Record'; return false; }
+      }, 'Record');
+    }
+
+    function studentFormHtml(s, isEdit) {
+      const startVal = s.startDate || todayStr();
+      const endVal = s.endDate || addDays(startVal, 29);
+      return `<form class="space-y-3" id="student-form">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label class="label">Full Name *</label><input name="name" class="input" required value="${esc(s.name || '')}"></div>
+          <div><label class="label">Email *</label><input name="email" type="email" class="input" required value="${esc(s.email || '')}"></div>
+          <div><label class="label">Phone</label><input name="phone" class="input" value="${esc(s.phone || '')}"></div>
+          <div><label class="label">Gender</label><select name="gender" class="input"><option value="">—</option><option ${s.gender==='Male'?'selected':''}>Male</option><option ${s.gender==='Female'?'selected':''}>Female</option><option ${s.gender==='Other'?'selected':''}>Other</option></select></div>
+          <div><label class="label">Date of Birth</label><input name="dob" type="date" class="input" value="${esc(s.dob || '')}"></div>
+          <div><label class="label">Roll Number</label><input name="rollNumber" class="input" value="${esc(s.rollNumber || '')}"></div>
+          <div class="sm:col-span-2"><label class="label">Address</label><input name="address" class="input" value="${esc(s.address || '')}"></div>
+          <div><label class="label">City</label><input name="city" class="input" value="${esc(s.city || '')}"></div>
+          <div><label class="label">State</label><input name="state" class="input" value="${esc(s.state || '')}"></div>
+          <div><label class="label">Country</label><input name="country" class="input" value="${esc(s.country || '')}"></div>
+          <div><label class="label">College</label><input name="college" class="input" value="${esc(s.college || '')}"></div>
+          <div><label class="label">Degree</label><input name="degree" class="input" value="${esc(s.degree || '')}"></div>
+          <div><label class="label">Department</label><input name="department" class="input" value="${esc(s.department || '')}"></div>
+          <div><label class="label">Year of Study</label><input name="yearOfStudy" class="input" value="${esc(s.yearOfStudy || '')}"></div>
+          <div><label class="label">Certificate Name</label><input name="certificateName" class="input" value="${esc(s.certificateName || s.name || '')}"></div>
+          <div><label class="label">Domain</label><select name="domainId" class="input" id="domain-select">${domainOptions(s.domainId || '')}</select></div>
+          <div><label class="label">Start Date</label><input name="startDate" type="date" class="input" id="start-date" value="${esc(startVal)}"></div>
+          <div><label class="label">End Date</label><input name="endDate" type="date" class="input" id="end-date" value="${esc(endVal)}" readonly></div>
+          <div><label class="label">Photo URL</label><input name="photoUrl" class="input" value="${esc(s.photoUrl || '')}"></div>
+          <div><label class="label">Offer Letter URL</label><input name="offerLetterUrl" class="input" value="${esc(s.offerLetterUrl || '')}"></div>
+        </div>
+      </form>`;
+    }
+
+    function readForm(form) {
+      const fd = new FormData(form);
+      const data = {};
+      for (const [k, v] of fd.entries()) data[k] = v;
+      // Resolve domainName and duration from select
+      const sel = form.querySelector('#domain-select');
+      if (sel && sel.selectedIndex > 0) {
+        data.domainName = sel.options[sel.selectedIndex].dataset.name || '';
+        data.duration = Number(sel.options[sel.selectedIndex].dataset.duration) || 30;
+      } else {
+        data.domainName = '';
+        data.duration = 30;
+      }
+      return data;
+    }
+
+    function showModal(title, bodyHtml, onSave, saveLabel = 'Save') {
+      const root = document.createElement('div');
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal modal-wide">
+          <div class="modal-head"><h3>${esc(title)}</h3><button class="icon-btn modal-close">✕</button></div>
+          <div class="modal-body">${bodyHtml}</div>
+          <div class="modal-foot">
+            <button class="btn btn-outline btn-sm modal-close">Cancel</button>
+            <button class="btn btn-primary btn-sm" data-action="save">${esc(saveLabel)}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(root);
+
+      const close = () => root.remove();
+      root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+      root.querySelector('.modal-backdrop').addEventListener('click', close);
+
+      // Auto-calc end date when start or domain changes
+      const startInput = root.querySelector('#start-date');
+      const endInput = root.querySelector('#end-date');
+      const domSelect = root.querySelector('#domain-select');
+      function recalcEnd() {
+        if (!startInput || !endInput) return;
+        const selOpt = domSelect?.options[domSelect?.selectedIndex];
+        const dur = Number(selOpt?.dataset?.duration) || 30;
+        if (startInput.value) {
+          endInput.value = addDays(startInput.value, dur - 1);
+        }
+      }
+      startInput?.addEventListener('change', recalcEnd);
+      domSelect?.addEventListener('change', recalcEnd);
+
+      root.querySelector('[data-action="save"]').addEventListener('click', async () => {
+        const form = root.querySelector('form');
+        if (form && !form.checkValidity()) { form.reportValidity(); return; }
+        const ok = await onSave(form || root.querySelector('.modal-body'));
+        if (ok) close();
+      });
+    }
+
+    // ---- VIEW MODAL ----
+    async function openViewModal(id) {
+      const s = allStudents.find(x => x.studentId === id);
+      if (!s) return;
+      const intern = s.startDate ? calcInternship(s.startDate, s.duration || 30) : null;
+
+      // Fetch tasks and submissions for this student
+      let tasksList = [], subsList = [];
+      try {
+        [tasksList, subsList] = await Promise.all([
+          s.domainId ? listTasks({ domainId: s.domainId }) : Promise.resolve([]),
+          listSubmissions({ studentId: id })
+        ]);
+      } catch (e) { console.warn(e); }
+
+      const totalTasks = tasksList.length;
+      const submittedCount = subsList.length;
+      const completedCount = subsList.filter(x => x.status === 'COMPLETED').length;
+
+      const root = document.createElement('div');
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal modal-wide">
+          <div class="modal-head"><h3>Student: ${esc(s.name)} (${esc(s.studentId)})</h3><button class="icon-btn modal-close">✕</button></div>
+          <div class="modal-body space-y-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              ${detailItem('Email', s.email)}${detailItem('Phone', s.phone)}${detailItem('Gender', s.gender)}
+              ${detailItem('DOB', s.dob)}${detailItem('Address', [s.address, s.city, s.state, s.country].filter(Boolean).join(', '))}
+              ${detailItem('College', s.college)}${detailItem('Degree', s.degree)}${detailItem('Department', s.department)}
+              ${detailItem('Year', s.yearOfStudy)}${detailItem('Roll No', s.rollNumber)}${detailItem('Domain', s.domainName)}
+              ${detailItem('Duration', (s.duration || 30) + ' days')}${detailItem('Start', s.startDate)}${detailItem('End', s.endDate)}
+              ${detailItem('Certificate Name', s.certificateName)}
+              ${detailItem('Payment', s.paymentStatus)}${detailItem('Certificate', s.certificateStatus)}
+              ${detailItem('Active', s.active !== false ? 'Yes' : 'No')}
+              ${detailItem('LMS', s.lms ? s.lms.username : 'None')}
+            </div>
+
+            ${intern ? `<div class="card p-3">
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Internship Timeline</h4>
+              <div class="flex flex-wrap gap-4 text-sm">
+                <span>Status: ${badge(intern.status)}</span>
+                <span>Day ${intern.currentDay} / ${intern.totalDays}</span>
+                <span>Week ${intern.week}</span>
+                <span>${intern.remainingDays} days remaining</span>
+                <div class="w-full mt-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div class="h-full bg-indigo-500 rounded-full" style="width:${intern.progressPct}%"></div>
+                </div>
+              </div>
+            </div>` : ''}
+
+            <div class="card p-3">
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Task Progress</h4>
+              <p class="text-sm mb-2">${completedCount} completed / ${submittedCount} submitted / ${totalTasks} total tasks</p>
+              ${subsList.length ? `<div class="overflow-x-auto"><table class="table text-xs">
+                <thead><tr><th>Task</th><th>Week</th><th>Status</th><th>Submitted</th></tr></thead>
+                <tbody>${subsList.map(sub => `<tr>
+                  <td>${esc(sub.taskTitle || sub.taskId)}</td>
+                  <td>${esc(sub.week || '')}</td>
+                  <td>${badge(sub.status)}</td>
+                  <td>${fmtTs(sub.submittedAt)}</td>
+                </tr>`).join('')}</tbody>
+              </table></div>` : '<p class="text-xs text-slate-400">No submissions yet.</p>'}
+            </div>
+
+            <button id="download-report" class="btn btn-outline btn-sm">Download PDF Report</button>
+          </div>
+          <div class="modal-foot"><button class="btn btn-outline btn-sm modal-close">Close</button></div>
+        </div>`;
+      document.body.appendChild(root);
+      const close = () => root.remove();
+      root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+      root.querySelector('.modal-backdrop').addEventListener('click', close);
+
+      // PDF download
+      root.querySelector('#download-report').addEventListener('click', async () => {
+        const btn = root.querySelector('#download-report');
+        btn.disabled = true; btn.textContent = 'Generating…';
+        try {
+          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          let y = 20;
+          const ln = (text, opts = {}) => { doc.text(text, 15, y, opts); y += 7; };
+          ln(`Student Report: ${s.name}`, { fontSize: 14 });
+          y += 3;
+          ln(`ID: ${s.studentId}   Email: ${s.email}`);
+          ln(`Phone: ${s.phone || '—'}   Gender: ${s.gender || '—'}`);
+          ln(`College: ${s.college || '—'}   Degree: ${s.degree || '—'}`);
+          ln(`Domain: ${s.domainName || '—'}   Start: ${s.startDate || '—'}   End: ${s.endDate || '—'}`);
+          ln(`Payment: ${s.paymentStatus}   Certificate: ${s.certificateStatus}`);
+          y += 5;
+          ln('Submissions:', { fontSize: 11 });
+          if (subsList.length) {
+            subsList.forEach(sub => {
+              ln(`  - ${sub.taskTitle || sub.taskId} | Week ${sub.week || '?'} | ${sub.status} | ${fmtTs(sub.submittedAt)}`);
+            });
+          } else {
+            ln('  (none)');
+          }
+          doc.save(`${s.studentId}_report.pdf`);
+          toast('Report downloaded', 'success');
+        } catch (e) {
+          toast('PDF generation failed: ' + (e.message || e), 'error');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Download PDF Report';
+        }
+      });
+    }
+
+    function detailItem(label, value) {
+      return `<div><span class="text-xs font-bold text-slate-500 uppercase">${esc(label)}</span><p class="text-slate-800 dark:text-slate-200 break-all">${esc(String(value || '—'))}</p></div>`;
+    }
+
+    // ---- LMS KEYS MODAL ----
+    function openKeysModal(id) {
+      const s = allStudents.find(x => x.studentId === id);
+      if (!s) return;
+
+      if (s.lms) {
+        // Already has LMS account
+        const root = document.createElement('div');
+        root.innerHTML = `
+          <div class="modal-backdrop"></div>
+          <div class="modal" style="width:min(440px,calc(100vw - 2rem))">
+            <div class="modal-head"><h3>LMS Credentials</h3><button class="icon-btn modal-close">✕</button></div>
+            <div class="modal-body space-y-3">
+              <p class="text-sm text-slate-700 dark:text-slate-200">Username: <strong>${esc(s.lms.username)}</strong></p>
+              <button id="reset-pw-btn" class="btn btn-outline btn-sm">Send Password Reset Email</button>
+              <div id="reset-result" class="hidden text-sm"></div>
+            </div>
+            <div class="modal-foot"><button class="btn btn-outline btn-sm modal-close">Close</button></div>
+          </div>`;
+        document.body.appendChild(root);
+        const close = () => root.remove();
+        root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+        root.querySelector('.modal-backdrop').addEventListener('click', close);
+
+        root.querySelector('#reset-pw-btn').addEventListener('click', async () => {
+          const btn = root.querySelector('#reset-pw-btn');
+          const res = root.querySelector('#reset-result');
+          btn.disabled = true; btn.textContent = 'Sending…';
+          try {
+            await resetPasswordEmail(s.email);
+            res.className = 'text-sm text-green-600';
+            res.textContent = 'Reset email sent to ' + s.email;
+            res.classList.remove('hidden');
+            toast('Reset email sent', 'success');
+          } catch (e) {
+            res.className = 'text-sm text-rose-500';
+            res.textContent = e.message || 'Failed to send reset email';
+            res.classList.remove('hidden');
+            toast(e.message || 'Failed', 'error');
+          } finally {
+            btn.disabled = false; btn.textContent = 'Send Password Reset Email';
+          }
+        });
+      } else {
+        // Create LMS account
+        const defaultUser = ((s.email || '') || (s.studentId || '')).trim().toLowerCase();
+        const mobilePass = String(s.phone || s.mobile || '').replace(/\D/g, '');
+        const defaultPass = mobilePass.length >= 6 ? mobilePass : genPass();
+        const root = document.createElement('div');
+        root.innerHTML = `
+          <div class="modal-backdrop"></div>
+          <div class="modal" style="width:min(460px,calc(100vw - 2rem))">
+            <div class="modal-head"><h3>Create LMS Account</h3><button class="icon-btn modal-close">✕</button></div>
+            <div class="modal-body space-y-3">
+              <div><label class="label">Username (Email)</label><input id="lms-user" class="input" value="${esc(defaultUser)}"></div>
+              <div>
+                <label class="label">Password (Mobile Number)</label>
+                <div class="flex gap-2">
+                  <input id="lms-pass" type="text" class="input flex-1" value="${esc(defaultPass)}">
+                  <button id="gen-pass-btn" class="btn btn-outline btn-sm">Generate</button>
+                </div>
+              </div>
+              <div id="lms-result" class="hidden text-sm rounded p-2"></div>
+            </div>
+            <div class="modal-foot">
+              <button class="btn btn-outline btn-sm modal-close">Cancel</button>
+              <button id="create-lms-btn" class="btn btn-primary btn-sm">Create Account</button>
+            </div>
+          </div>`;
+        document.body.appendChild(root);
+        const close = () => root.remove();
+        root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+        root.querySelector('.modal-backdrop').addEventListener('click', close);
+
+        root.querySelector('#gen-pass-btn').addEventListener('click', () => {
+          root.querySelector('#lms-pass').value = genPass();
+        });
+
+        root.querySelector('#create-lms-btn').addEventListener('click', async () => {
+          const username = root.querySelector('#lms-user').value.trim();
+          const password = root.querySelector('#lms-pass').value;
+          if (!username || !password) { toast('Username and password required', 'error'); return; }
+          const btn = root.querySelector('#create-lms-btn');
+          btn.disabled = true; btn.textContent = 'Creating…';
+          const resEl = root.querySelector('#lms-result');
+          try {
+            const result = await createLmsAccount(s, username, password);
+            resEl.className = 'text-sm rounded p-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+            resEl.innerHTML = `Account created!<br>Username: <strong>${esc(result.username)}</strong><br>Password: <strong>${esc(password)}</strong>`;
+            resEl.classList.remove('hidden');
+            toast('LMS account created', 'success');
+
+            // Try sending via EmailJS
+            try {
+              await sendEmail(settings, {
+                to_email: s.email, to_name: s.name,
+                subject: 'Your LMS Credentials',
+                message: `Username: ${result.username}\nPassword: ${password}`
+              });
+            } catch (em) { console.warn('Email send skipped', em); }
+
+            btn.textContent = 'Done';
+            await refresh();
+          } catch (e) {
+            resEl.className = 'text-sm rounded p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300';
+            resEl.textContent = e.message || 'Failed to create account';
+            resEl.classList.remove('hidden');
+            toast(e.message || 'Failed', 'error');
+            btn.disabled = false; btn.textContent = 'Create Account';
+          }
+        });
+      }
+    }
+
+    // ---- TOGGLE ACTIVE ----
+    async function toggleActive(id) {
+      const s = allStudents.find(x => x.studentId === id);
+      if (!s) return;
+      const action = s.active !== false ? 'deactivate' : 'activate';
+      const ok = await confirmDialog(`Are you sure you want to ${action} ${s.name} (${s.studentId})?`, { danger: action === 'deactivate' });
+      if (!ok) return;
+      try {
+        await saveStudent(id, { active: s.active === false });
+        toast(`Student ${action}d`, 'success');
+        await refresh();
+      } catch (e) { toast(e.message || 'Failed', 'error'); }
+    }
+
+    function genPass() {
+      const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
+      let p = '';
+      for (let i = 0; i < 10; i++) p += chars[Math.floor(Math.random() * chars.length)];
+      return p;
+    }
+  </script>
+</body>
+</html>

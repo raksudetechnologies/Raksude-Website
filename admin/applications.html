@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Applications</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+  <div id="content" class="p-4 md:p-8"></div>
+
+  <script type="module">
+    import { initAdminPage, confirmDialog, loadingBlock, emptyBlock } from '../assets/js/admin.js';
+    import { esc, badge, fmtTs, todayStr, addDays, exportCSV, qs, debounce, toast } from '../assets/js/utils.js';
+    import { listApplications, approveApplication, rejectApplication, updateApplication, listDomains, listStudents } from '../assets/js/database.js';
+    import { createLmsAccount } from '../assets/js/auth.js';
+
+    const { user, settings } = await initAdminPage('applications');
+    const content = document.getElementById('content');
+
+    let allApps = [];
+    let allStudents = [];
+    let domains = [];
+    let searchTerm = qs('search') || '';
+    let statusFilter = 'ALL';
+
+    async function autoApprovePending() {
+      // Auto-approve any applications that are PENDING or missing from the student collection
+      const toSync = allApps.filter(a => a.status === 'PENDING' || !a.studentId || !allStudents.some(s => s.studentId === a.studentId));
+      if (toSync.length > 0) {
+        let changed = false;
+        for (const app of toSync) {
+          try {
+            await approveApplication(app);
+            changed = true;
+          } catch (err) {
+            console.warn('Auto-approval note for', app.appId, err);
+          }
+        }
+        if (changed) {
+          [allApps, allStudents] = await Promise.all([
+            listApplications(),
+            listStudents({ includeInactive: true })
+          ]);
+        }
+      }
+    }
+
+    content.innerHTML = loadingBlock();
+    try {
+      [allApps, allStudents, domains] = await Promise.all([
+        listApplications(),
+        listStudents({ includeInactive: true }),
+        listDomains({ includeInactive: true })
+      ]);
+      await autoApprovePending();
+      renderPage();
+    } catch (e) {
+      content.innerHTML = `<div class="py-10 text-center text-rose-500 text-sm">Error: ${esc(e.message || e)}</div>`;
+    }
+
+    async function refresh() {
+      content.innerHTML = loadingBlock();
+      try {
+        [allApps, allStudents] = await Promise.all([
+          listApplications(),
+          listStudents({ includeInactive: true })
+        ]);
+        await autoApprovePending();
+        renderPage();
+      } catch (e) {
+        content.innerHTML = `<div class="py-10 text-center text-rose-500 text-sm">Error: ${esc(e.message || e)}</div>`;
+      }
+    }
+
+    function studentForApp(app) {
+      if (!app.studentId) return null;
+      return allStudents.find(s => s.studentId === app.studentId);
+    }
+
+    function filtered() {
+      let rows = allApps;
+      if (statusFilter !== 'ALL') rows = rows.filter(a => a.status === statusFilter);
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        rows = rows.filter(a => [a.appId, a.personal?.fullName, a.personal?.email, a.personal?.phone].some(v => String(v || '').toLowerCase().includes(q)));
+      }
+      return rows;
+    }
+
+    function renderPage() {
+      const rows = filtered();
+      content.innerHTML = `
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input id="search-input" type="text" class="input max-w-xs" placeholder="Search ID / name / email / phone…" value="${esc(searchTerm)}">
+          <select id="status-filter" class="input max-w-[160px]">
+            <option value="ALL" ${statusFilter==='ALL'?'selected':''}>All Status</option>
+            <option value="PENDING" ${statusFilter==='PENDING'?'selected':''}>Pending</option>
+            <option value="APPROVED" ${statusFilter==='APPROVED'?'selected':''}>Approved</option>
+            <option value="REJECTED" ${statusFilter==='REJECTED'?'selected':''}>Rejected</option>
+          </select>
+          <div class="ml-auto flex gap-2">
+            <button id="bulk-approve" class="btn btn-success btn-sm hidden">Approve Selected</button>
+            <button id="bulk-reject" class="btn btn-danger btn-sm hidden">Reject Selected</button>
+            <button id="export-btn" class="btn btn-outline btn-sm">Export CSV</button>
+          </div>
+        </div>
+        <div class="card overflow-x-auto">
+          ${rows.length ? `<table class="table">
+            <thead><tr>
+              <th><input type="checkbox" id="select-all"></th>
+              <th>Application ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Domain</th><th>Duration</th>
+              <th>Registered</th><th>Status</th><th>Payment</th><th>Actions</th>
+            </tr></thead>
+            <tbody>${rows.map(a => {
+              const stu = studentForApp(a);
+              const payBadge = a.status === 'APPROVED' && stu ? badge(stu.paymentStatus) : '<span class="text-slate-400">—</span>';
+              const durDays = a.duration || a.internship?.duration || 30;
+              return `<tr data-appid="${esc(a.appId)}">
+                <td><input type="checkbox" class="row-check" value="${esc(a.appId)}"></td>
+                <td class="font-mono text-xs">${esc(a.appId)}</td>
+                <td class="font-medium">${esc(a.personal?.fullName || '')}</td>
+                <td class="text-xs">${esc(a.personal?.email || '')}</td>
+                <td class="text-xs">${esc(a.personal?.phone || '')}</td>
+                <td class="text-xs">${esc(a.internship?.domainName || '')}</td>
+                <td class="text-xs font-semibold whitespace-nowrap">${durDays} days</td>
+                <td class="text-xs whitespace-nowrap">${fmtTs(a.createdAt)}</td>
+                <td>${badge(a.status)}</td>
+                <td>${payBadge}</td>
+                <td class="whitespace-nowrap">
+                  <div class="flex gap-1">
+                    <button class="btn btn-outline btn-sm act-view" data-id="${esc(a.appId)}">View</button>
+                    ${a.status === 'PENDING' ? `
+                      <button class="btn btn-success btn-sm act-approve" data-id="${esc(a.appId)}">Approve</button>
+                      <button class="btn btn-danger btn-sm act-reject" data-id="${esc(a.appId)}">Reject</button>
+                      <button class="btn btn-outline btn-sm act-edit" data-id="${esc(a.appId)}">Edit</button>
+                    ` : ''}
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>` : emptyBlock('No applications found.')}
+        </div>`;
+
+      // Wire events (safe null-check with optional chaining)
+      document.getElementById('search-input')?.addEventListener('input', debounce((e) => {
+        searchTerm = e.target.value.trim();
+        renderPage();
+      }, 250));
+      document.getElementById('status-filter')?.addEventListener('change', (e) => {
+        statusFilter = e.target.value;
+        renderPage();
+      });
+      document.getElementById('export-btn')?.addEventListener('click', () => {
+        const r = filtered();
+        exportCSV('applications.csv', r.map(a => ({
+          appId: a.appId, name: a.personal?.fullName, email: a.personal?.email,
+          phone: a.personal?.phone, domain: a.internship?.domainName,
+          duration: `${a.duration || a.internship?.duration || 30} days`,
+          registered: fmtTs(a.createdAt), status: a.status
+        })));
+      });
+
+      // Select all / bulk
+      const selectAll = document.getElementById('select-all');
+      const checks = content.querySelectorAll('.row-check');
+      const bulkApproveBtn = document.getElementById('bulk-approve');
+      const bulkRejectBtn = document.getElementById('bulk-reject');
+
+      function updateBulk() {
+        const checked = content.querySelectorAll('.row-check:checked');
+        bulkApproveBtn?.classList.toggle('hidden', checked.length === 0);
+        bulkRejectBtn?.classList.toggle('hidden', checked.length === 0);
+      }
+      selectAll?.addEventListener('change', () => {
+        checks.forEach(c => c.checked = selectAll.checked);
+        updateBulk();
+      });
+      checks.forEach(c => c.addEventListener('change', updateBulk));
+
+      bulkApproveBtn?.addEventListener('click', async () => {
+        const ids = [...content.querySelectorAll('.row-check:checked')].map(c => c.value);
+        const pending = ids.map(id => allApps.find(a => a.appId === id)).filter(a => a && a.status === 'PENDING');
+        if (!pending.length) { toast('No pending applications selected', 'error'); return; }
+        const ok = await confirmDialog(`Approve ${pending.length} application(s)?`);
+        if (!ok) return;
+        bulkApproveBtn.disabled = true;
+        for (const app of pending) {
+          try { await approveApplication(app); } catch (e) { toast(`Failed to approve ${app.appId}: ${e.message}`, 'error'); }
+        }
+        toast(`${pending.length} application(s) approved`, 'success');
+        await refresh();
+      });
+
+      bulkRejectBtn?.addEventListener('click', async () => {
+        const ids = [...content.querySelectorAll('.row-check:checked')].map(c => c.value);
+        const pending = ids.map(id => allApps.find(a => a.appId === id)).filter(a => a && a.status === 'PENDING');
+        if (!pending.length) { toast('No pending applications selected', 'error'); return; }
+        const ok = await confirmDialog(`Reject ${pending.length} application(s)?`, { danger: true });
+        if (!ok) return;
+        bulkRejectBtn.disabled = true;
+        for (const app of pending) {
+          try { await rejectApplication(app.appId); } catch (e) { toast(`Failed to reject ${app.appId}: ${e.message}`, 'error'); }
+        }
+        toast(`${pending.length} application(s) rejected`, 'success');
+        await refresh();
+      });
+
+      content.querySelectorAll('.act-view').forEach(b => b.addEventListener('click', () => openViewModal(b.dataset.id)));
+      content.querySelectorAll('.act-approve').forEach(b => b.addEventListener('click', () => doApprove(b.dataset.id)));
+      content.querySelectorAll('.act-reject').forEach(b => b.addEventListener('click', () => doReject(b.dataset.id)));
+      content.querySelectorAll('.act-edit').forEach(b => b.addEventListener('click', () => openEditModal(b.dataset.id)));
+    }
+
+    // ---- VIEW MODAL ----
+    function openViewModal(id) {
+      const a = allApps.find(x => x.appId === id);
+      if (!a) return;
+      const root = document.createElement('div');
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal modal-wide">
+          <div class="modal-head"><h3>Application: ${esc(a.appId)}</h3><button class="icon-btn modal-close">✕</button></div>
+          <div class="modal-body space-y-4">
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Personal Information</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                ${di('Full Name', a.personal?.fullName)}${di('Email', a.personal?.email)}${di('Phone', a.personal?.phone)}
+                ${di('Gender', a.personal?.gender)}${di('DOB', a.personal?.dob)}
+                ${di('Address', [a.personal?.address, a.personal?.city, a.personal?.state, a.personal?.country].filter(Boolean).join(', '))}
+              </div>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Academic Information</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                ${di('College', a.academic?.college)}${di('Degree', a.academic?.degree)}${di('Department', a.academic?.department)}
+                ${di('Year', a.academic?.yearOfStudy)}${di('Roll Number', a.academic?.rollNumber)}
+              </div>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Internship Details</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                ${di('Domain', a.internship?.domainName)}
+                ${di('Duration', (a.duration || a.internship?.duration || 30) + ' Days')}
+                ${di('Start Date', fmtDate(a.startDate || a.internship?.startDate))}
+                ${di('End Date', fmtDate(a.endDate || a.internship?.endDate))}
+              </div>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Certificate</h4>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                ${di('Certificate Name', a.certificate?.name)}
+              </div>
+            </div>
+            <div class="text-sm">
+              <span class="font-bold text-slate-500">Status:</span> ${badge(a.status)}
+              <span class="ml-4 font-bold text-slate-500">Registered:</span> ${fmtTs(a.createdAt)}
+              ${a.studentId ? `<span class="ml-4 font-bold text-slate-500">Student ID:</span> ${esc(a.studentId)}` : ''}
+            </div>
+          </div>
+          <div class="modal-foot"><button class="btn btn-outline btn-sm modal-close">Close</button></div>
+        </div>`;
+      document.body.appendChild(root);
+      const close = () => root.remove();
+      root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+      root.querySelector('.modal-backdrop').addEventListener('click', close);
+    }
+
+    function di(label, value) {
+      return `<div><span class="text-xs font-bold text-slate-500 uppercase">${esc(label)}</span><p class="text-slate-800 dark:text-slate-200 break-all">${esc(String(value || '—'))}</p></div>`;
+    }
+
+    // ---- APPROVE FLOW ----
+    async function doApprove(id) {
+      const app = allApps.find(a => a.appId === id);
+      if (!app) return;
+      const ok = await confirmDialog(`Approve application ${app.appId} for ${app.personal?.fullName || 'this student'}?`);
+      if (!ok) return;
+      try {
+        const studentId = await approveApplication(app);
+        toast(`Approved! Student ID: ${studentId}`, 'success');
+        await refresh();
+        // Offer LMS creation
+        openLmsFollowUp(studentId, app.personal?.email, app.personal?.fullName, app.personal?.phone);
+      } catch (e) { toast(e.message || 'Approval failed', 'error'); }
+    }
+
+    function openLmsFollowUp(studentId, email, name, phone) {
+      const defaultUser = (email || studentId).trim().toLowerCase();
+      const mobilePass = String(phone || '').replace(/\D/g, '');
+      const defaultPass = mobilePass.length >= 6 ? mobilePass : genPass();
+      const root = document.createElement('div');
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal" style="width:min(460px,calc(100vw - 2rem))">
+          <div class="modal-head"><h3>Create LMS Credentials?</h3><button class="icon-btn modal-close">✕</button></div>
+          <div class="modal-body space-y-3">
+            <p class="text-sm text-slate-600 dark:text-slate-300">Would you like to generate LMS credentials for <strong>${esc(name || studentId)}</strong> now?</p>
+            <div><label class="label">Username (Email)</label><input id="lms-user" class="input" value="${esc(defaultUser)}"></div>
+            <div>
+              <label class="label">Password (Mobile Number)</label>
+              <div class="flex gap-2">
+                <input id="lms-pass" type="text" class="input flex-1" value="${esc(defaultPass)}">
+                <button id="gen-pass-btn" class="btn btn-outline btn-sm">Generate</button>
+              </div>
+            </div>
+            <div id="lms-result" class="hidden text-sm rounded p-2"></div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-outline btn-sm modal-close">Skip</button>
+            <button id="create-lms-btn" class="btn btn-primary btn-sm">Create Account</button>
+          </div>
+        </div>`;
+      document.body.appendChild(root);
+      const close = () => root.remove();
+      root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+      root.querySelector('.modal-backdrop').addEventListener('click', close);
+
+      root.querySelector('#gen-pass-btn').addEventListener('click', () => {
+        root.querySelector('#lms-pass').value = genPass();
+      });
+
+      root.querySelector('#create-lms-btn').addEventListener('click', async () => {
+        const username = root.querySelector('#lms-user').value.trim();
+        const password = root.querySelector('#lms-pass').value;
+        if (!username || !password) { toast('Username and password required', 'error'); return; }
+        const btn = root.querySelector('#create-lms-btn');
+        btn.disabled = true; btn.textContent = 'Creating…';
+        const resEl = root.querySelector('#lms-result');
+        try {
+          // Need fresh student data
+          const { getStudent } = await import('../assets/js/database.js');
+          const student = await getStudent(studentId);
+          if (!student) throw new Error('Student not found');
+          const result = await createLmsAccount(student, username, password);
+          resEl.className = 'text-sm rounded p-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+          resEl.innerHTML = `Created!<br>Username: <strong>${esc(result.username)}</strong><br>Password: <strong>${esc(password)}</strong>`;
+          resEl.classList.remove('hidden');
+          toast('LMS account created', 'success');
+          btn.textContent = 'Done';
+        } catch (e) {
+          resEl.className = 'text-sm rounded p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300';
+          resEl.textContent = e.message || 'Failed';
+          resEl.classList.remove('hidden');
+          toast(e.message || 'Failed', 'error');
+          btn.disabled = false; btn.textContent = 'Create Account';
+        }
+      });
+    }
+
+    // ---- REJECT ----
+    async function doReject(id) {
+      const app = allApps.find(a => a.appId === id);
+      if (!app) return;
+      const ok = await confirmDialog(`Reject application ${app.appId}?`, { danger: true });
+      if (!ok) return;
+      try {
+        await rejectApplication(id);
+        toast('Application rejected', 'success');
+        await refresh();
+      } catch (e) { toast(e.message || 'Failed', 'error'); }
+    }
+
+    // ---- EDIT MODAL ----
+    function openEditModal(id) {
+      const a = allApps.find(x => x.appId === id);
+      if (!a) return;
+      const root = document.createElement('div');
+      const startVal = a.internship?.startDate || todayStr();
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal modal-wide">
+          <div class="modal-head"><h3>Edit Application: ${esc(a.appId)}</h3><button class="icon-btn modal-close">✕</button></div>
+          <div class="modal-body">
+            <form id="edit-app-form" class="space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label class="label">Full Name</label><input name="fullName" class="input" value="${esc(a.personal?.fullName || '')}"></div>
+                <div><label class="label">Email</label><input name="email" type="email" class="input" value="${esc(a.personal?.email || '')}"></div>
+                <div><label class="label">Phone</label><input name="phone" class="input" value="${esc(a.personal?.phone || '')}"></div>
+                <div><label class="label">Gender</label><input name="gender" class="input" value="${esc(a.personal?.gender || '')}"></div>
+                <div><label class="label">DOB</label><input name="dob" type="date" class="input" value="${esc(a.personal?.dob || '')}"></div>
+                <div><label class="label">College</label><input name="college" class="input" value="${esc(a.academic?.college || '')}"></div>
+                <div><label class="label">Degree</label><input name="degree" class="input" value="${esc(a.academic?.degree || '')}"></div>
+                <div><label class="label">Department</label><input name="department" class="input" value="${esc(a.academic?.department || '')}"></div>
+                <div><label class="label">Year of Study</label><input name="yearOfStudy" class="input" value="${esc(a.academic?.yearOfStudy || '')}"></div>
+                <div><label class="label">Roll Number</label><input name="rollNumber" class="input" value="${esc(a.academic?.rollNumber || '')}"></div>
+                <div><label class="label">Domain</label><select name="domainId" class="input" id="edit-domain-select">
+                  <option value="">— Select —</option>
+                  ${domains.map(d => `<option value="${esc(d.id)}" data-name="${esc(d.name)}" ${d.id === (a.internship?.domainId||'') ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}
+                </select></div>
+                <div><label class="label">Start Date</label><input name="startDate" type="date" class="input" id="edit-start" value="${esc(startVal)}"></div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-outline btn-sm modal-close">Cancel</button>
+            <button class="btn btn-primary btn-sm" data-action="save">Save Changes</button>
+          </div>
+        </div>`;
+      document.body.appendChild(root);
+      const close = () => root.remove();
+      root.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
+      root.querySelector('.modal-backdrop').addEventListener('click', close);
+
+      root.querySelector('[data-action="save"]').addEventListener('click', async () => {
+        const form = root.querySelector('#edit-app-form');
+        const fd = new FormData(form);
+        const sel = form.querySelector('#edit-domain-select');
+        const domainName = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].dataset.name : '';
+        const patch = {
+          personal: { ...a.personal, fullName: fd.get('fullName'), email: fd.get('email'), phone: fd.get('phone'), gender: fd.get('gender'), dob: fd.get('dob') },
+          academic: { ...a.academic, college: fd.get('college'), degree: fd.get('degree'), department: fd.get('department'), yearOfStudy: fd.get('yearOfStudy'), rollNumber: fd.get('rollNumber') },
+          internship: { ...a.internship, domainId: fd.get('domainId'), domainName, startDate: fd.get('startDate'), endDate: fd.get('startDate') ? addDays(fd.get('startDate'), 29) : a.internship?.endDate }
+        };
+        const btn = root.querySelector('[data-action="save"]');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          await updateApplication(id, patch);
+          toast('Application updated', 'success');
+          close();
+          await refresh();
+        } catch (e) { toast(e.message || 'Failed', 'error'); btn.disabled = false; btn.textContent = 'Save Changes'; }
+      });
+    }
+
+    function genPass() {
+      const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
+      let p = '';
+      for (let i = 0; i < 10; i++) p += chars[Math.floor(Math.random() * chars.length)];
+      return p;
+    }
+  </script>
+</body>
+</html>

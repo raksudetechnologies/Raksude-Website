@@ -1,0 +1,149 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    // True only until the first admin finishes setup.html (which writes meta/setup).
+    function bootstrap() {
+      return !exists(/databases/$(database)/documents/meta/setup);
+    }
+    function myStudentId() {
+      return get(/databases/$(database)/documents/uid_map/$(request.auth.uid)).data.studentId;
+    }
+    function isMyStudent(studentId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/uid_map/$(request.auth.uid))
+        && myStudentId() == studentId;
+    }
+
+    // Admin registry: anyone signed-in can read their own status;
+    // first admin created during bootstrap, only existing admins afterwards.
+    match /admins/{uid} {
+      allow read: if signedIn();
+      allow create: if bootstrap() || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /meta/{doc} {
+      allow read: if true;
+      allow write: if bootstrap() || isAdmin();
+    }
+
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /secure_config/{doc} {
+      // Sensitive gateway & secret credentials - strictly admin-only
+      allow read, write: if isAdmin();
+    }
+
+    match /domains/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /tasks/{id} {
+      allow read: if isAdmin() || signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /applications/{id} {
+      // Public apply form creates applications
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'phone', 'domainId']);
+      allow update: if isAdmin()
+        || (resource.data.status == 'SUBMITTED' 
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'studentId']));
+      allow read, delete: if isAdmin();
+    }
+
+    match /app_locks/{key} {
+      // Duplicate-application guard
+      allow get: if true;
+      allow create: if true;
+      allow list, update, delete: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      // Automatic enrolment from public apply flow
+      allow create: if isAdmin()
+        || request.resource.data.keys().hasAll(['studentId', 'applicationId', 'domainId', 'startDate', 'endDate']);
+      // Updates: admin, or student updating profile/payment/cert, or payment verification update
+      allow update: if isAdmin()
+        || (isMyStudent(studentId)
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['photoUrl', 'paymentStatus', 'paymentVerified', 'paymentId', 'orderId', 'paymentDate', 'certificateStatus', 'certificateId']))
+        || ((!('uid' in resource.data) || resource.data.uid == '' || resource.data.uid == null)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'lms']))
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'paymentVerified', 'paymentId', 'orderId', 'paymentDate', 'certificateStatus']);
+      allow delete: if isAdmin();
+    }
+
+    match /uid_map/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if isAdmin() || request.resource.data.keys().hasOnly(['studentId']);
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && request.resource.data.keys().hasOnly(['studentId']));
+      allow delete: if isAdmin();
+    }
+
+    // Secure LMS Auth registry: single-doc direct lookups allowed for login;
+    // bulk collection listing is completely blocked to prevent credential leaks!
+    match /lms_auth/{key} {
+      allow get: if true;
+      allow list: if isAdmin();
+      // Anyone can create OR update a valid auth record (for sync scripts & onboarding).
+      // Deletion is strictly admin-only to prevent tampering.
+      allow create, update: if isAdmin()
+        || request.resource.data.keys().hasAll(['studentId', 'mobile', 'active']);
+      allow delete: if isAdmin();
+    }
+
+    match /submissions/{id} {
+      allow read: if isAdmin() || (signedIn() && resource.data.studentId == myStudentId());
+      allow create: if signedIn()
+        && request.resource.data.studentId == myStudentId()
+        && request.resource.data.keys().hasAll(['studentId', 'taskId', 'githubUrl']);
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.studentId == myStudentId());
+      allow delete: if isAdmin();
+    }
+
+    match /payments/{id} {
+      allow create: if (signedIn() && request.resource.data.studentId == myStudentId())
+        || request.resource.data.keys().hasAll(['studentId', 'amount', 'method', 'status']);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /certificates/{certificateId} {
+      // Public verification page fetches by exact ID
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        || (signedIn() && request.resource.data.studentId == myStudentId()
+            && certificateId == request.resource.data.certificateId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /contacts/{id} {
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message']);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /feedback/{studentId} {
+      allow read: if isAdmin() || isMyStudent(studentId);
+      allow create, update: if isMyStudent(studentId) && request.resource.data.studentId == studentId;
+      allow delete: if isAdmin();
+    }
+
+    match /counters/{name} {
+      allow read, write: if isAdmin() || name in ['applications', 'students'];
+    }
+  }
+}
+

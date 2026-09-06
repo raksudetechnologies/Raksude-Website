@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us — Internship Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased">
+
+  <div id="nav"></div>
+
+  <!-- Page Header -->
+  <section class="bg-gradient-to-br from-indigo-600 to-blue-700 text-white py-12 md:py-16">
+    <div class="max-w-4xl mx-auto px-6 text-center" data-aos="fade-up">
+      <h1 class="text-3xl md:text-4xl font-extrabold mb-3">Contact Us</h1>
+      <p class="text-indigo-100 text-lg">Have questions? Reach out to us and we will get back to you promptly.</p>
+    </div>
+  </section>
+
+  <section class="py-12 sm:py-16 max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="grid lg:grid-cols-5 gap-8 lg:gap-10">
+
+      <!-- Contact Form -->
+      <div class="lg:col-span-3 card p-5 sm:p-8" data-aos="fade-right">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-2"><i data-lucide="mail" class="w-5 h-5 text-indigo-600"></i> Send a Message</h2>
+        <form id="contactForm" novalidate>
+          <div class="grid sm:grid-cols-2 gap-4 sm:gap-5 mb-4 sm:mb-5">
+            <div>
+              <label class="block text-sm font-medium mb-1">Your Name *</label>
+              <input type="text" id="cName" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="John Doe">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Email Address *</label>
+              <input type="email" id="cEmail" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="you@example.com">
+            </div>
+          </div>
+          <div class="mb-4 sm:mb-5">
+            <label class="block text-sm font-medium mb-1">Subject *</label>
+            <input type="text" id="cSubject" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" placeholder="How can we help?">
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium mb-1">Message *</label>
+            <textarea id="cMessage" required rows="5" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-y" placeholder="Write your message here..."></textarea>
+          </div>
+          <button type="submit" id="sendBtn" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition shadow-lg flex items-center justify-center gap-2">
+            <i data-lucide="send" class="w-4 h-4"></i> Send Message
+          </button>
+        </form>
+      </div>
+
+      <!-- Contact Info Sidebar -->
+      <div class="lg:col-span-2 space-y-6" data-aos="fade-left">
+        <div class="card p-6">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="info" class="w-5 h-5 text-indigo-600"></i> Contact Information</h3>
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <i data-lucide="mail" class="w-5 h-5 text-indigo-500 mt-0.5 shrink-0"></i>
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase">Email</p>
+                <a id="infoEmail" href="#" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"></a>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <i data-lucide="phone" class="w-5 h-5 text-indigo-500 mt-0.5 shrink-0"></i>
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase">Phone</p>
+                <p id="infoPhone" class="text-sm font-semibold"></p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <i data-lucide="map-pin" class="w-5 h-5 text-indigo-500 mt-0.5 shrink-0"></i>
+              <div>
+                <p class="text-xs font-medium text-gray-500 uppercase">Address</p>
+                <p id="infoAddress" class="text-sm font-semibold"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-6">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="share-2" class="w-5 h-5 text-indigo-600"></i> Follow Us</h3>
+          <div id="socialLinks" class="flex flex-wrap gap-3">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer"></div>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script type="module">
+    import { esc, toast } from './assets/js/utils.js';
+    import { addContact } from './assets/js/database.js';
+    import { applyPublicChrome } from './assets/js/settings.js';
+
+    (async () => {
+      AOS.init({ duration: 700, once: true });
+      lucide.createIcons();
+
+      try {
+        const s = await applyPublicChrome('contact');
+        if (s && s.company) {
+          const c = s.company;
+          if (c.email) {
+            document.getElementById('infoEmail').textContent = c.email;
+            document.getElementById('infoEmail').href = 'mailto:' + c.email;
+          }
+          if (c.phone) document.getElementById('infoPhone').textContent = c.phone;
+          if (c.address) document.getElementById('infoAddress').textContent = c.address;
+
+          // Social links
+          const socials = [
+            { key: 'facebook', icon: 'facebook', color: 'bg-blue-600' },
+            { key: 'twitter', icon: 'twitter', color: 'bg-sky-500' },
+            { key: 'linkedin', icon: 'linkedin', color: 'bg-blue-700' },
+            { key: 'instagram', icon: 'instagram', color: 'bg-pink-600' }
+          ];
+          const container = document.getElementById('socialLinks');
+          container.innerHTML = socials
+            .filter(s => c[s.key])
+            .map(s => `<a href="${esc(c[s.key])}" target="_blank" rel="noopener noreferrer" class="w-10 h-10 ${s.color} rounded-lg flex items-center justify-center text-white hover:opacity-80 transition" aria-label="${s.key}"><i data-lucide="${s.icon}" class="w-5 h-5"></i></a>`)
+            .join('');
+          if (!container.innerHTML) container.innerHTML = '<p class="text-sm text-gray-500">No social links configured.</p>';
+          lucide.createIcons();
+        }
+      } catch(e) { console.error(e); }
+    })();
+
+    let sending = false;
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (sending) return;
+
+      const name = document.getElementById('cName').value.trim();
+      const email = document.getElementById('cEmail').value.trim();
+      const subject = document.getElementById('cSubject').value.trim();
+      const message = document.getElementById('cMessage').value.trim();
+
+      // Validation
+      const inputs = [document.getElementById('cName'), document.getElementById('cEmail'), document.getElementById('cSubject'), document.getElementById('cMessage')];
+      inputs.forEach(i => i.classList.remove('ring-2', 'ring-red-500'));
+      let valid = true;
+      inputs.forEach(i => { if (!i.value.trim()) { i.classList.add('ring-2', 'ring-red-500'); valid = false; }});
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRe.test(email)) {
+        document.getElementById('cEmail').classList.add('ring-2', 'ring-red-500');
+        toast('Please enter a valid email address.', 'error');
+        return;
+      }
+      if (!valid) { toast('Please fill in all required fields.', 'error'); return; }
+
+      sending = true;
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner border-white"></div><span>Sending...</span>';
+
+      try {
+        await addContact({ name, email, subject, message });
+        toast('Message sent successfully! We will get back to you soon.', 'success');
+        document.getElementById('contactForm').reset();
+      } catch (err) {
+        console.error(err);
+        toast('Failed to send message. Please try again later.', 'error');
+      } finally {
+        sending = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Send Message';
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login · Secure Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+    @keyframes float2 {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-14px) rotate(-5deg); }
+    }
+    .blob-1 { animation: float 8s ease-in-out infinite; }
+    .blob-2 { animation: float2 10s ease-in-out infinite 2s; }
+    .blob-3 { animation: float 12s ease-in-out infinite 4s; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up { animation: slideUp 0.55s cubic-bezier(0.16,1,0.3,1) both; }
+    .slide-up-2 { animation: slideUp 0.55s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
+
+    .glass-card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .dark .glass-card {
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .admin-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      background: rgba(255,255,255,0.7);
+      color: #0f172a;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    .admin-input:focus {
+      border-color: #6366f1;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .dark .admin-input {
+      background: rgba(30,41,59,0.7);
+      border-color: #334155;
+      color: #f1f5f9;
+    }
+    .dark .admin-input:focus {
+      border-color: #818cf8;
+      background: rgba(30,41,59,0.95);
+      box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
+    }
+
+    .admin-btn {
+      width: 100%;
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9375rem;
+      border-radius: 0.875rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .admin-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .admin-btn:hover::before { opacity: 1; }
+    .admin-btn:hover { box-shadow: 0 12px 32px rgba(99,102,241,0.45); transform: translateY(-1px); }
+    .admin-btn:active { transform: translateY(0); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+    .admin-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+    .admin-btn span { position: relative; z-index: 1; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center overflow-hidden relative bg-slate-50 dark:bg-slate-950 transition-colors">
+
+  <!-- Animated gradient background -->
+  <div class="fixed inset-0 pointer-events-none -z-10">
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-950 dark:via-indigo-950/50 dark:to-purple-950/30"></div>
+    <!-- Blobs -->
+    <div class="blob-1 absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-400/30 to-purple-400/20 blur-3xl"></div>
+    <div class="blob-2 absolute top-1/2 -right-40 w-[420px] h-[420px] rounded-full bg-gradient-to-br from-violet-400/25 to-pink-400/20 blur-3xl"></div>
+    <div class="blob-3 absolute -bottom-24 left-1/3 w-[380px] h-[380px] rounded-full bg-gradient-to-br from-blue-400/20 to-cyan-400/15 blur-3xl"></div>
+  </div>
+
+  <!-- Theme toggle (top-right) -->
+  <button id="theme-toggle" class="fixed top-4 right-4 z-50 p-2.5 rounded-xl glass-card shadow-sm text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" aria-label="Toggle dark mode">
+    <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 15A9.75 9.75 0 0 1 9 2.25 9.72 9.75 0 0 0 3.25 15a9.75 9.75 0 0 0 18.5 0Z"/></svg>
+    <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.25"/><path stroke-linecap="round" d="M12 2.5v2m0 15v2M2.5 12h2m15 0h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg>
+  </button>
+
+  <div class="w-full max-w-sm px-4 py-8">
+    <!-- Card -->
+    <div id="login-card" class="glass-card rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-indigo-950/40 p-8 slide-up">
+
+      <!-- Setup Notice -->
+      <div id="setup-notice" class="hidden mb-5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-3.5 text-sm text-amber-800 dark:text-amber-200">
+        Firebase is not configured — fill <code class="font-mono text-xs bg-amber-100 dark:bg-amber-900/60 px-1 rounded">assets/js/firebase-config.js</code> and run <a href="../setup.html" class="underline font-semibold hover:no-underline">setup.html</a>.
+      </div>
+
+      <!-- Logo & Branding -->
+      <div class="text-center mb-7">
+        <div id="logo-area" class="mx-auto mb-3.5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg shadow-indigo-500/20 border border-slate-200/80"><img src="../assets/img/company-logo.png" class="h-full w-full object-contain" alt="Raksude Tech"></div>
+        <h1 id="company-name" class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Raksude Tech</h1>
+        <p id="company-tagline" class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Sign in to manage your portal</p>
+      </div>
+
+      <!-- Security badge -->
+      <div class="flex items-center justify-center gap-1.5 mb-6 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+        <span>Firebase Authentication · 2FA Ready</span>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-4 slide-up-2" autocomplete="on">
+        <!-- Email -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" for="email">Admin Email</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
+            </span>
+            <input id="email" type="email" required class="admin-input" placeholder="admin@yourcompany.com" autocomplete="email">
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300" for="password">Password</label>
+            <button type="button" id="toggle-password" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+              <svg id="eye-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+              <span id="toggle-pw-text">Show</span>
+            </button>
+          </div>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+            </span>
+            <input id="password" type="password" required class="admin-input" placeholder="Enter your password" autocomplete="current-password">
+          </div>
+        </div>
+
+        <!-- Error message -->
+        <div id="error-msg" class="hidden flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-sm text-rose-700 dark:text-rose-300 font-medium">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+          <span id="error-text"></span>
+        </div>
+
+        <!-- Sign In Button -->
+        <button id="submit-btn" type="submit" class="admin-btn">
+          <span id="btn-label">Sign In to Admin Panel</span>
+        </button>
+      </form>
+
+      <!-- Divider & Back link -->
+      <div class="mt-6 pt-5 border-t border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <a href="../index.html" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+          Back to Website
+        </a>
+        <a href="../setup-recovery.html" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
+          Setup Admin &rarr;
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer note -->
+    <p class="text-center text-[11px] text-slate-400 dark:text-slate-600 mt-4">
+      Unauthorized access is strictly prohibited. &bull; <a href="../setup-recovery.html" class="underline hover:text-slate-500">Admin Setup Recovery</a>
+    </p>
+  </div>
+
+  <script type="module">
+    import { getSettings } from '../assets/js/database.js';
+    import { adminLogin } from '../assets/js/auth.js';
+    import { esc, qs, initTheme, setTheme } from '../assets/js/utils.js';
+
+    initTheme();
+
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setTheme(!isDark);
+    });
+
+    // Show setup notice if ?setup=1
+    if (qs('setup') === '1') {
+      document.getElementById('setup-notice').classList.remove('hidden');
+    }
+
+    // Load company branding
+    try {
+      const settings = await getSettings();
+      const c = settings.company || {};
+      const nameEl = document.getElementById('company-name');
+      const tagEl = document.getElementById('company-tagline');
+      const logoArea = document.getElementById('logo-area');
+      if (c.name) nameEl.textContent = c.name;
+      if (c.tagline) tagEl.textContent = c.tagline;
+      let logoSrc = c.logoUrl || 'assets/img/company-logo.png';
+      if (!logoSrc.startsWith('http') && !logoSrc.startsWith('/') && !logoSrc.startsWith('../')) {
+        logoSrc = `../${logoSrc}`;
+      }
+      logoArea.className = 'mx-auto mb-3.5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg shadow-indigo-500/20 border border-slate-200/80';
+      logoArea.innerHTML = `<img src="${esc(logoSrc)}" class="h-full w-full object-contain" alt="logo">`;
+      document.title = `Admin Login · ${c.name || 'Raksude Tech'}`;
+    } catch (e) {
+      console.warn('Could not load settings', e);
+    }
+
+    // Password visibility toggle
+    const pwInput = document.getElementById('password');
+    const togglePwBtn = document.getElementById('toggle-password');
+    const togglePwText = document.getElementById('toggle-pw-text');
+    togglePwBtn.addEventListener('click', () => {
+      const isPass = pwInput.type === 'password';
+      pwInput.type = isPass ? 'text' : 'password';
+      togglePwText.textContent = isPass ? 'Hide' : 'Show';
+    });
+
+    // Handle login
+    const form = document.getElementById('login-form');
+    const errEl = document.getElementById('error-msg');
+    const errText = document.getElementById('error-text');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnLabel = document.getElementById('btn-label');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.classList.add('hidden');
+      submitBtn.disabled = true;
+      btnLabel.textContent = 'Signing in…';
+
+      try {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        await adminLogin(email, password);
+        btnLabel.textContent = 'Redirecting…';
+        location.href = 'dashboard.html';
+      } catch (err) {
+        const msg = err.message || 'Login failed. Please check your credentials.';
+        if (msg.includes('This account does not have admin access')) {
+          errText.innerHTML = `This account does not have admin access. <a href="../setup-recovery.html" class="underline font-bold text-rose-800 dark:text-rose-200 ml-1">Setup Admin Account &rarr;</a>`;
+        } else {
+          errText.textContent = msg;
+        }
+        errEl.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        btnLabel.textContent = 'Sign In to Admin Panel';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contacts · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div id="content" class="p-4 md:p-8"></div>
+<script type="module">
+import { initAdminPage, confirmDialog, loadingBlock, emptyBlock, errorBlock } from '../assets/js/admin.js';
+import { esc, exportCSV, toast, fmtTs, debounce } from '../assets/js/utils.js';
+import { listContacts, setContactRead, deleteContact } from '../assets/js/database.js';
+
+const content = document.getElementById('content');
+let contacts = [];
+let fSearch = '';
+
+async function load() {
+  content.innerHTML = loadingBlock();
+  try {
+    contacts = await listContacts();
+    render();
+  } catch (e) { content.innerHTML = errorBlock(e); toast(e.message, 'error'); }
+}
+
+function filtered() {
+  if (!fSearch) return contacts;
+  const q = fSearch.toLowerCase();
+  return contacts.filter(c =>
+    (c.name || '').toLowerCase().includes(q) ||
+    (c.email || '').toLowerCase().includes(q) ||
+    (c.subject || '').toLowerCase().includes(q) ||
+    (c.message || '').toLowerCase().includes(q)
+  );
+}
+
+function render() {
+  const list = filtered();
+  const rows = list.map(c => {
+    const unread = !c.read;
+    return `<tr class="${unread ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}">
+      <td>${unread ? '<span class="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600 mr-2" title="Unread"></span>' : ''}${esc(c.name || '—')}</td>
+      <td>${esc(c.email || '—')}</td>
+      <td class="${unread ? 'font-bold' : ''}">${esc(c.subject || '(no subject)')}</td>
+      <td>${fmtTs(c.createdAt)}</td>
+      <td class="space-x-1 whitespace-nowrap">
+        <button class="btn btn-outline btn-sm" data-view="${esc(c.id)}">View</button>
+        <button class="btn btn-outline btn-sm" data-toggle="${esc(c.id)}" data-read="${c.read}">${c.read ? 'Mark Unread' : 'Mark Read'}</button>
+        <button class="btn btn-danger btn-sm" data-del="${esc(c.id)}">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">Contact Messages</h2>
+      <button id="export-btn" class="btn btn-outline">Export CSV</button>
+    </div>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input class="input w-auto min-w-[250px]" id="f-search" placeholder="Search name, email, subject..." value="${esc(fSearch)}">
+    </div>
+    <div class="card overflow-x-auto">
+      ${list.length ? `<table class="table">
+        <thead><tr><th>Name</th><th>Email</th><th>Subject</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>` : emptyBlock('No contact messages found.')}
+    </div>`;
+
+  const searchInput = document.getElementById('f-search');
+  searchInput.oninput = debounce(e => { fSearch = e.target.value; render(); }, 250);
+
+  document.getElementById('export-btn').onclick = () => {
+    if (!list.length) return toast('No data to export', 'error');
+    exportCSV('contacts.csv', list.map(c => ({
+      Name: c.name, Email: c.email, Phone: c.phone || '', Subject: c.subject,
+      Message: c.message, Read: c.read ? 'Yes' : 'No', Date: fmtTs(c.createdAt)
+    })));
+  };
+
+  content.querySelectorAll('[data-view]').forEach(b => b.onclick = async () => {
+    const c = contacts.find(c => c.id === b.dataset.view);
+    if (!c) return;
+    // Mark as read when opened
+    if (!c.read) {
+      try { await setContactRead(c.id, true); c.read = true; } catch (e) { console.warn(e); }
+    }
+    openViewModal(c);
+    render(); // re-render to update unread styling
+  });
+
+  content.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    const c = contacts.find(c => c.id === b.dataset.toggle);
+    const newRead = !c.read;
+    b.disabled = true;
+    try {
+      await setContactRead(c.id, newRead);
+      c.read = newRead;
+      toast(newRead ? 'Marked as read' : 'Marked as unread', 'success');
+      render();
+    } catch (e) { toast(e.message, 'error'); b.disabled = false; }
+  });
+
+  content.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const c = contacts.find(c => c.id === b.dataset.del);
+    const ok = await confirmDialog(`Delete message from "${c.name}"?`, { danger: true });
+    if (!ok) return;
+    b.disabled = true;
+    try {
+      await deleteContact(c.id);
+      toast('Message deleted', 'success');
+      await load();
+    } catch (e) { toast(e.message, 'error'); b.disabled = false; }
+  });
+}
+
+function openViewModal(contact) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal">
+      <div class="modal-head"><h3>Message Details</h3><button class="icon-btn" id="m-close">✕</button></div>
+      <div class="modal-body space-y-3">
+        <div><span class="label">Name</span><p class="text-slate-900 dark:text-slate-100">${esc(contact.name || '—')}</p></div>
+        <div><span class="label">Email</span><p class="text-slate-900 dark:text-slate-100">${esc(contact.email || '—')}</p></div>
+        ${contact.phone ? `<div><span class="label">Phone</span><p class="text-slate-900 dark:text-slate-100">${esc(contact.phone)}</p></div>` : ''}
+        <div><span class="label">Subject</span><p class="text-slate-900 dark:text-slate-100 font-medium">${esc(contact.subject || '(no subject)')}</p></div>
+        <div><span class="label">Date</span><p class="text-slate-900 dark:text-slate-100">${fmtTs(contact.createdAt)}</p></div>
+        <div><span class="label">Message</span><div class="mt-1 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm whitespace-pre-wrap">${esc(contact.message || '')}</div></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline btn-sm" id="m-cancel">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  const close = () => wrap.remove();
+  wrap.querySelector('#m-close').onclick = close;
+  wrap.querySelector('#m-cancel').onclick = close;
+  wrap.querySelector('.modal-backdrop').onclick = close;
+}
+
+const { user, settings } = await initAdminPage('contacts');
+await load();
+</script>
+</body>
+</html>

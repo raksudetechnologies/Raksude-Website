@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Internship Domains — Internship Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased">
+
+  <div id="nav"></div>
+
+  <!-- Page Header -->
+  <section class="bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-800 text-white py-14 md:py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center" data-aos="fade-up">
+      <span class="text-xs font-bold uppercase tracking-widest bg-white/20 text-white rounded-full px-3.5 py-1 backdrop-blur inline-block mb-3">Industry-Standard Tracks</span>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4">Internship Domains</h1>
+      <p class="text-indigo-100 text-base sm:text-lg max-w-2xl mx-auto">Browse our structured, hands-on internship programs with weekly milestones, mentor guidance, and verified certificates.</p>
+    </div>
+  </section>
+
+  <!-- Search & Filter Bar -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 -mt-7">
+    <div class="card p-3 sm:p-4 shadow-xl border border-white/60 dark:border-slate-700/60 bg-white/95 dark:bg-slate-800/95 backdrop-blur flex flex-col sm:flex-row gap-3 items-center">
+      <div class="relative flex-1 w-full">
+        <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+        <input type="text" id="trackSearch" placeholder="Search domain by title, skill (e.g. React, Python, AI)..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/60 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+      </div>
+      <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0" id="filterPills">
+        <button class="filter-pill active px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shrink-0 transition" data-filter="all">All Tracks</button>
+        <button class="filter-pill px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 transition" data-filter="web">Web & Fullstack</button>
+        <button class="filter-pill px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 transition" data-filter="ai">AI & Data</button>
+        <button class="filter-pill px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 transition" data-filter="mobile">Mobile & Cloud</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Domains List -->
+  <section class="py-12 sm:py-16 max-w-6xl mx-auto px-4 sm:px-6">
+    <div id="domainsList" class="space-y-6">
+      <div class="text-center py-16"><div class="spinner"></div><p class="mt-4 text-gray-500">Loading domains...</p></div>
+    </div>
+  </section>
+
+  <div id="footer"></div>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script type="module">
+    import { esc } from './assets/js/utils.js';
+    import { listDomains } from './assets/js/database.js';
+    import { applyPublicChrome } from './assets/js/settings.js';
+
+    let allDomains = [];
+
+    (async () => {
+      AOS.init({ duration: 700, once: true });
+      lucide.createIcons();
+
+      try { await applyPublicChrome('internship'); } catch(e) { console.error(e); }
+
+      const container = document.getElementById('domainsList');
+      try {
+        allDomains = await listDomains({ includeInactive: false });
+        renderDomains(allDomains);
+
+        // Wire search input
+        const searchInput = document.getElementById('trackSearch');
+        searchInput?.addEventListener('input', () => filterAndRender());
+
+        // Wire filter pills
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-pill').forEach(b => {
+              b.classList.remove('active', 'bg-indigo-600', 'text-white');
+              b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+            });
+            btn.classList.add('active', 'bg-indigo-600', 'text-white');
+            btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+            filterAndRender();
+          });
+        });
+      } catch (e) {
+        container.innerHTML = `
+          <div class="text-center py-20 card">
+            <i data-lucide="alert-circle" class="w-16 h-16 mx-auto text-red-400 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2 text-red-600">Failed to Load Domains</h3>
+            <p class="text-gray-500 text-sm">Please refresh the page or check your internet connection.</p>
+          </div>`;
+        lucide.createIcons();
+        console.error(e);
+      }
+    })();
+
+    function filterAndRender() {
+      const q = (document.getElementById('trackSearch')?.value || '').trim().toLowerCase();
+      const activeFilter = document.querySelector('.filter-pill.active')?.dataset.filter || 'all';
+
+      let filtered = allDomains.filter(d => {
+        const text = `${d.name || ''} ${d.shortDescription || ''} ${d.description || ''} ${Array.isArray(d.skills) ? d.skills.join(' ') : (d.skills || '')}`.toLowerCase();
+        const matchesQuery = !q || text.includes(q);
+        if (!matchesQuery) return false;
+
+        if (activeFilter === 'web') return /web|frontend|backend|fullstack|javascript|react|node|html|php|python/.test(text);
+        if (activeFilter === 'ai') return /ai|machine learning|data|deep learning|nlp|vision|analytics|python/.test(text);
+        if (activeFilter === 'mobile') return /mobile|android|flutter|ios|cloud|aws|devops|security/.test(text);
+        return true;
+      });
+
+      renderDomains(filtered);
+    }
+
+    function renderDomains(domains) {
+      const container = document.getElementById('domainsList');
+      if (!domains || domains.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 card p-8">
+            <i data-lucide="inbox" class="w-14 h-14 mx-auto text-slate-300 dark:text-slate-600 mb-3"></i>
+            <h3 class="text-lg font-bold mb-1">No Matching Tracks Found</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">Try clearing your search query or choosing another category.</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = domains.map((d, i) => {
+        const benefits = d.benefits ? (Array.isArray(d.benefits) ? d.benefits : d.benefits.split('\n').filter(Boolean)) : [];
+        const skills = d.skills ? (Array.isArray(d.skills) ? d.skills : d.skills.split(',').map(s => s.trim()).filter(Boolean)) : [];
+        const weeklyOverview = d.weeklyOverview || d.methodology || '';
+        const durDays = Number(d.duration) || 30;
+        const durWeeks = d.weeks || Math.max(1, Math.round(durDays / 7));
+        const durLabel = `${durDays} Days (${durWeeks} Weeks)`;
+
+        return `
+        <div class="card overflow-hidden transition-all hover:shadow-xl" data-aos="fade-up" data-aos-delay="${Math.min(i * 40, 200)}">
+          <div class="flex flex-col md:flex-row">
+            <div class="flex-1 p-5 sm:p-7">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <i data-lucide="briefcase" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">${esc(d.name)}</h2>
+                    <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mt-0.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i>${durLabel} · 100% Online</span>
+                  </div>
+                </div>
+              </div>
+
+              ${d.shortDescription ? `<p class="text-slate-600 dark:text-slate-300 text-sm mb-3 leading-relaxed">${esc(d.shortDescription)}</p>` : ''}
+              ${d.description ? `<p class="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-4 leading-relaxed">${esc(d.description)}</p>` : ''}
+
+              ${skills.length ? `
+                <div class="mb-4">
+                  <h4 class="font-bold text-xs uppercase tracking-wide text-slate-400 mb-2 flex items-center gap-1.5"><i data-lucide="code" class="w-3.5 h-3.5 text-indigo-500"></i> Key Competencies</h4>
+                  <div class="flex flex-wrap gap-1.5">${skills.map(s => `<span class="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-medium border border-indigo-100 dark:border-indigo-900/40">${esc(s)}</span>`).join('')}</div>
+                </div>` : ''}
+
+              ${benefits.length ? `
+                <div class="mb-4">
+                  <h4 class="font-bold text-xs uppercase tracking-wide text-slate-400 mb-2 flex items-center gap-1.5"><i data-lucide="star" class="w-3.5 h-3.5 text-amber-500"></i> What You Gain</h4>
+                  <ul class="grid sm:grid-cols-2 gap-1.5">${benefits.map(b => `<li class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-start gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0"></i><span>${esc(b)}</span></li>`).join('')}</ul>
+                </div>` : ''}
+
+              ${weeklyOverview ? `
+                <div class="mb-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+                  <span class="font-bold text-slate-700 dark:text-slate-300 block mb-0.5">Weekly Roadmap:</span>
+                  ${esc(weeklyOverview)}
+                </div>` : ''}
+
+              <div class="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-2">
+                <i data-lucide="award" class="w-4 h-4"></i> Includes MSME Verified Certificate of Completion + GitHub Project Review
+              </div>
+            </div>
+
+            <!-- Action column -->
+            <div class="w-full md:w-56 bg-slate-50/80 dark:bg-slate-800/30 p-5 sm:p-6 flex flex-col justify-center items-center text-center border-t md:border-t-0 md:border-l border-slate-200/70 dark:border-slate-800">
+              <div class="mb-3 hidden md:block">
+                <span class="text-2xl font-black text-slate-900 dark:text-white">${durDays}</span>
+                <span class="block text-[11px] uppercase tracking-wider text-slate-400 font-bold">Days Program</span>
+              </div>
+              <a href="apply.html?domain=${esc(d.id)}" class="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition shadow-md hover:shadow-indigo-500/20">
+                Apply Track &rarr;
+              </a>
+              <p class="text-[11px] text-slate-400 mt-2">Immediate Auto-Approval</p>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
